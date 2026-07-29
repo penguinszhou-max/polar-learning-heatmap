@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>POLAR 累计计划与实际</title>
+<style>
+:root{
+  --bg:#fff;--text:#252b2e;--muted:#7b858a;--line:#e7e7e3;
+  --grid:#eeeeeb;--actual:#2e6876;--actual-fill:#dce8ea;
+  --plan:#9c8eb6;--today:#c58a3d;--good:#3b7d5b;--bad:#b35d50
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.shell{padding:14px 16px 10px}
+.metrics{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:8px}
+.metric strong{display:block;font-size:17px;line-height:1.2}
+.metric span{font-size:11px;color:var(--muted)}
+.good{color:var(--good)}.bad{color:var(--bad)}
+.chart{width:100%;height:280px;position:relative}
+svg{width:100%;height:100%;overflow:visible}
+.axis{font-size:10px;fill:var(--muted)}
+.grid{stroke:var(--grid);stroke-width:1}
+.actual-area{fill:var(--actual-fill);opacity:.6}
+.actual-line{fill:none;stroke:var(--actual);stroke-width:2.6}
+.plan-line{fill:none;stroke:var(--plan);stroke-width:2;stroke-dasharray:7 5}
+.today-line{stroke:var(--today);stroke-width:1.2;stroke-dasharray:3 4}
+.point{fill:var(--actual);stroke:var(--bg);stroke-width:2}
+.legend{display:flex;justify-content:flex-end;gap:15px;color:var(--muted);font-size:10px;margin-top:4px}
+.key{display:inline-flex;align-items:center;gap:5px}.line{width:20px;height:0;border-top:3px solid}.dashed{border-top-style:dashed}
+.footer{font-size:10px;color:var(--muted);margin-top:7px}
+.tip{position:fixed;display:none;z-index:10;pointer-events:none;padding:8px 10px;border-radius:7px;background:#252b2e;color:#fff;font-size:11px;line-height:1.5;box-shadow:0 5px 18px rgba(0,0,0,.2)}
+.error{padding:12px;border:1px solid #e3a3a3;border-radius:8px;background:#fff2f2;color:#8a2b2b;font-size:12px}
+@media(max-width:700px){.chart{height:245px}.metrics{gap:14px}.metric strong{font-size:15px}}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#191919;--text:#f1f1ef;--muted:#aaa9a5;--line:#343432;--grid:#30302f;--actual-fill:#24383d}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="metrics" id="metrics"></div>
+  <div class="chart" id="chart"></div>
+  <div class="legend">
+    <span class="key"><i class="line" style="border-color:var(--actual)"></i>实际累计</span>
+    <span class="key"><i class="line dashed" style="border-color:var(--plan)"></i>计划累计</span>
+    <span class="key"><i class="line dashed" style="border-color:var(--today)"></i>当前日期</span>
+  </div>
+  <div class="footer" id="updated">正在读取数据…</div>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(name,attrs={})=>{
+  const node=document.createElementNS(NS,name);
+  Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));
+  return node;
+};
+const asDate=s=>new Date(s+"T00:00:00");
+const fmt=s=>new Intl.DateTimeFormat("zh-CN",{month:"numeric",day:"numeric"}).format(asDate(s));
+function showTip(event,html){
+  const tip=document.getElementById("tip");
+  tip.style.display="block";tip.innerHTML=html;
+  tip.style.left=event.clientX+12+"px";tip.style.top=event.clientY+12+"px";
+}
+function hideTip(){document.getElementById("tip").style.display="none"}
+
+function interpolatePlan(points,targetDate){
+  const t=asDate(targetDate).getTime();
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i];
+    const ta=asDate(a.date).getTime(),tb=asDate(b.date).getTime();
+    if(t<=tb){
+      const ratio=(t-ta)/(tb-ta||1);
+      return a.hours+(b.hours-a.hours)*Math.max(0,Math.min(1,ratio));
+    }
+  }
+  return points.at(-1).hours;
+}
+
+function render(data){
+  const gapClass=data.gap_hours>=0?"good":"bad";
+  document.getElementById("metrics").innerHTML=[
+    `<div class="metric"><strong>${data.actual_total_hours.toFixed(1)}h</strong><span>实际累计投入</span></div>`,
+    `<div class="metric"><strong>${data.planned_to_date_hours.toFixed(1)}h</strong><span>当前计划累计</span></div>`,
+    `<div class="metric"><strong class="${gapClass}">${data.gap_hours>=0?"+":""}${data.gap_hours.toFixed(1)}h</strong><span>实际－计划差额</span></div>`,
+    `<div class="metric"><strong>${data.completion_pct.toFixed(1)}%</strong><span>总计划完成率（${data.plan_total_hours}h）</span></div>`
+  ].join("");
+
+  const host=document.getElementById("chart");
+  host.innerHTML="";
+  const width=Math.max(host.clientWidth,720),height=280;
+  const margin={top:16,right:20,bottom:38,left:42};
+  const innerW=width-margin.left-margin.right;
+  const innerH=height-margin.top-margin.bottom;
+  const start=asDate(data.course_start),end=asDate(data.course_end);
+  const totalMs=end-start;
+  const maxY=Math.ceil(Math.max(data.plan_total_hours,data.actual_total_hours,10)/50)*50;
+  const x=s=>margin.left+((asDate(s)-start)/totalMs)*innerW;
+  const y=v=>margin.top+innerH-(v/maxY)*innerH;
+
+  const svg=el("svg",{viewBox:`0 0 ${width} ${height}`});
+  host.appendChild(svg);
+
+  for(let value=0;value<=maxY;value+=50){
+    svg.appendChild(el("line",{x1:margin.left,y1:y(value),x2:width-margin.right,y2:y(value),class:"grid"}));
+    const label=el("text",{x:margin.left-7,y:y(value)+3,"text-anchor":"end",class:"axis"});
+    label.textContent=value;svg.appendChild(label);
+  }
+
+  for(let month=7;month<=11;month++){
+    const d=new Date(2026,month-1,1);
+    if(d<start)d.setTime(start.getTime());
+    const label=el("text",{x:x(d.toISOString().slice(0,10)),y:height-13,"text-anchor":"middle",class:"axis"});
+    label.textContent=`${month}月`;svg.appendChild(label);
+  }
+
+  const planPts=data.planned_points.map(p=>`${x(p.date)},${y(p.hours)}`).join(" ");
+  svg.appendChild(el("polyline",{points:planPts,class:"plan-line"}));
+
+  if(data.actual_points.length){
+    const actualPts=data.actual_points.map(p=>`${x(p.date)},${y(p.hours)}`);
+    const areaPts=[`${x(data.actual_points[0].date)},${y(0)}`,...actualPts,`${x(data.actual_points.at(-1).date)},${y(0)}`];
+    svg.appendChild(el("polygon",{points:areaPts.join(" "),class:"actual-area"}));
+    svg.appendChild(el("polyline",{points:actualPts.join(" "),class:"actual-line"}));
+
+    data.actual_points.forEach((p,i)=>{
+      if(i!==data.actual_points.length-1 && i%7!==0)return;
+      const point=el("circle",{cx:x(p.date),cy:y(p.hours),r:4,class:"point"});
+      point.addEventListener("mousemove",e=>{
+        const plan=interpolatePlan(data.planned_points,p.date);
+        showTip(e,`<b>${fmt(p.date)}</b><br>实际累计 ${p.hours.toFixed(1)}h<br>计划累计 ${plan.toFixed(1)}h<br>差额 ${(p.hours-plan)>=0?"+":""}${(p.hours-plan).toFixed(1)}h`);
+      });
+      point.addEventListener("mouseleave",hideTip);
+      svg.appendChild(point);
+    });
+  }
+
+  svg.appendChild(el("line",{x1:x(data.today),y1:margin.top,x2:x(data.today),y2:margin.top+innerH,class:"today-line"}));
+  const todayLabel=el("text",{x:x(data.today)+4,y:margin.top+10,class:"axis"});
+  todayLabel.textContent="当前";svg.appendChild(todayLabel);
+
+  document.getElementById("updated").textContent="自动同步于 "+new Date(data.generated_at).toLocaleString("zh-CN");
+}
+
+fetch("progress-data.json",{cache:"no-store"})
+  .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()})
+  .then(render)
+  .catch(err=>{
+    document.getElementById("chart").innerHTML=`<div class="error">累计进度图加载失败：${err.message}</div>`;
+    document.getElementById("updated").textContent="同步状态不可用";
+  });
+</script>
+</body>
+</html>

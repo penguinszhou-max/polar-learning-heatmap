@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>POLAR 每周学习小时</title>
+<style>
+:root{
+  --bg:#fff;--text:#252b2e;--muted:#7b858a;--line:#e7e7e3;
+  --grid:#eeeeeb;--actual:#2e6876;--target:#82b2bc;
+  --minimum:#c58a3d;--standard:#8878a6;--panel:#f7f7f5
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.shell{padding:14px 16px 10px}
+.metrics{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:8px}
+.metric strong{display:block;font-size:17px;line-height:1.2}
+.metric span{font-size:11px;color:var(--muted)}
+.chart{width:100%;height:270px;position:relative}
+svg{width:100%;height:100%;overflow:visible}
+.axis{font-size:10px;fill:var(--muted)}
+.grid{stroke:var(--grid);stroke-width:1}
+.bar{fill:var(--actual);rx:4}
+.target-dot{fill:var(--target);stroke:var(--bg);stroke-width:2}
+.target-line{fill:none;stroke:var(--target);stroke-width:2}
+.minimum{stroke:var(--minimum);stroke-width:1.2;stroke-dasharray:5 5}
+.standard{stroke:var(--standard);stroke-width:1.2;stroke-dasharray:3 5}
+.legend{display:flex;justify-content:flex-end;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:10px;margin-top:4px}
+.key{display:inline-flex;align-items:center;gap:5px}.mark{width:11px;height:11px;border-radius:3px}.dash{width:18px;height:0;border-top:2px dashed}
+.footer{font-size:10px;color:var(--muted);margin-top:7px}
+.tip{position:fixed;display:none;z-index:10;pointer-events:none;padding:8px 10px;border-radius:7px;background:#252b2e;color:#fff;font-size:11px;line-height:1.5;box-shadow:0 5px 18px rgba(0,0,0,.2)}
+.error{padding:12px;border:1px solid #e3a3a3;border-radius:8px;background:#fff2f2;color:#8a2b2b;font-size:12px}
+@media(max-width:700px){.chart{height:240px}.metrics{gap:14px}.metric strong{font-size:15px}}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#191919;--text:#f1f1ef;--muted:#aaa9a5;--line:#343432;--grid:#30302f;--panel:#242424}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="metrics" id="metrics"></div>
+  <div class="chart" id="chart"></div>
+  <div class="legend">
+    <span class="key"><i class="mark" style="background:var(--actual)"></i>实际投入</span>
+    <span class="key"><i class="mark" style="background:var(--target)"></i>周计划</span>
+    <span class="key"><i class="dash" style="border-color:var(--minimum)"></i>20h执行底线</span>
+    <span class="key"><i class="dash" style="border-color:var(--standard)"></i>22h标准目标</span>
+  </div>
+  <div class="footer" id="updated">正在读取数据…</div>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(name,attrs={})=>{
+  const node=document.createElementNS(NS,name);
+  Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));
+  return node;
+};
+const fmt=d=>new Intl.DateTimeFormat("zh-CN",{month:"numeric",day:"numeric"}).format(new Date(d+"T00:00:00"));
+function showTip(event,html){
+  const tip=document.getElementById("tip");
+  tip.style.display="block";tip.innerHTML=html;
+  tip.style.left=event.clientX+12+"px";tip.style.top=event.clientY+12+"px";
+}
+function hideTip(){document.getElementById("tip").style.display="none"}
+
+function render(data){
+  const current=data.current_week;
+  document.getElementById("metrics").innerHTML=[
+    `<div class="metric"><strong>${current?current.actual_hours.toFixed(1):"—"} / ${current?current.target_hours:"—"}h</strong><span>当前周实际 / 计划</span></div>`,
+    `<div class="metric"><strong>${current?current.completion_pct.toFixed(0):"—"}%</strong><span>当前周完成率</span></div>`,
+    `<div class="metric"><strong>${data.total_actual_hours.toFixed(1)}h</strong><span>课程累计投入</span></div>`,
+    `<div class="metric"><strong>20 / 22h</strong><span>执行底线 / 标准目标</span></div>`
+  ].join("");
+
+  const host=document.getElementById("chart");
+  host.innerHTML="";
+  const width=Math.max(host.clientWidth,720),height=270;
+  const margin={top:14,right:20,bottom:38,left:38};
+  const innerW=width-margin.left-margin.right;
+  const innerH=height-margin.top-margin.bottom;
+  const maxY=Math.max(26,...data.weeks.map(x=>Math.max(x.actual_hours,x.target_hours)));
+  const yMax=Math.ceil(maxY/5)*5;
+  const xStep=innerW/data.weeks.length;
+  const barW=Math.min(24,xStep*.52);
+  const y=v=>margin.top+innerH-(v/yMax)*innerH;
+  const x=i=>margin.left+xStep*i+xStep/2;
+
+  const svg=el("svg",{viewBox:`0 0 ${width} ${height}`});
+  host.appendChild(svg);
+
+  for(let value=0;value<=yMax;value+=5){
+    svg.appendChild(el("line",{x1:margin.left,y1:y(value),x2:width-margin.right,y2:y(value),class:"grid"}));
+    const label=el("text",{x:margin.left-7,y:y(value)+3,"text-anchor":"end",class:"axis"});
+    label.textContent=value;svg.appendChild(label);
+  }
+
+  [["minimum",20],["standard",22]].forEach(([cls,value])=>{
+    svg.appendChild(el("line",{x1:margin.left,y1:y(value),x2:width-margin.right,y2:y(value),class:cls}));
+  });
+
+  const targetPoints=[];
+  data.weeks.forEach((week,i)=>{
+    const cx=x(i);
+    const rect=el("rect",{x:cx-barW/2,y:y(week.actual_hours),width:barW,height:Math.max(0,margin.top+innerH-y(week.actual_hours)),class:"bar"});
+    rect.addEventListener("mousemove",e=>showTip(e,`<b>${week.week}｜${fmt(week.start)}—${fmt(week.end)}</b><br>实际 ${week.actual_hours.toFixed(1)}h<br>计划 ${week.target_hours}h<br>完成 ${week.completion_pct.toFixed(0)}%`));
+    rect.addEventListener("mouseleave",hideTip);
+    svg.appendChild(rect);
+
+    targetPoints.push(`${cx},${y(week.target_hours)}`);
+    const text=el("text",{x:cx,y:height-13,"text-anchor":"middle",class:"axis"});
+    text.textContent=week.week;svg.appendChild(text);
+  });
+
+  svg.appendChild(el("polyline",{points:targetPoints.join(" "),class:"target-line"}));
+  data.weeks.forEach((week,i)=>{
+    const dot=el("circle",{cx:x(i),cy:y(week.target_hours),r:4,class:"target-dot"});
+    dot.addEventListener("mousemove",e=>showTip(e,`<b>${week.week}</b><br>周计划 ${week.target_hours}h`));
+    dot.addEventListener("mouseleave",hideTip);
+    svg.appendChild(dot);
+  });
+
+  document.getElementById("updated").textContent="自动同步于 "+new Date(data.generated_at).toLocaleString("zh-CN");
+}
+
+fetch("weekly-data.json",{cache:"no-store"})
+  .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()})
+  .then(render)
+  .catch(err=>{
+    document.getElementById("chart").innerHTML=`<div class="error">每周学习图加载失败：${err.message}</div>`;
+    document.getElementById("updated").textContent="同步状态不可用";
+  });
+</script>
+</body>
+</html>

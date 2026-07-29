@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>POLAR Learning Heatmap</title>
+<style>
+:root{
+  --bg:#ffffff;
+  --text:#252b2e;
+  --muted:#7b858a;
+  --panel:#f7f7f5;
+  --line:#e7e7e3;
+  --empty:#ececea;
+  --l1:#dce8ea;
+  --l2:#b8d3d8;
+  --l3:#82b2bc;
+  --l4:#4f8996;
+  --l5:#2e6876;
+  --l6:#174b58;
+  --accent:#174b58;
+  --today:#c47a2c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",
+  "Microsoft YaHei",sans-serif;
+}
+button{font:inherit}
+.shell{padding:14px 16px 10px}
+.header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;margin-bottom:12px
+}
+.metrics{display:flex;gap:22px;flex-wrap:wrap}
+.metric strong{display:block;font-size:17px;line-height:1.2}
+.metric span{font-size:11px;color:var(--muted)}
+.controls{display:flex;align-items:center;gap:8px}
+.switch{
+  display:flex;gap:3px;padding:3px;background:var(--panel);
+  border:1px solid var(--line);border-radius:9px
+}
+.switch button{
+  border:0;background:transparent;color:var(--muted);cursor:pointer;
+  padding:5px 10px;border-radius:6px;font-size:12px
+}
+.switch button.active{
+  background:var(--bg);color:var(--accent);font-weight:650;
+  box-shadow:0 1px 4px rgba(0,0,0,.08)
+}
+.nav{
+  display:flex;align-items:center;gap:4px
+}
+.nav button{
+  width:28px;height:28px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--muted);cursor:pointer
+}
+.period{min-width:72px;text-align:center;font-size:12px;font-weight:650}
+.year-view{display:block}
+.year-labels{
+  height:16px;margin-left:30px;position:relative;
+  color:var(--muted);font-size:10px;overflow:hidden
+}
+.year-grid{display:grid;grid-template-columns:24px 1fr;gap:6px}
+.weekdays{
+  display:grid;grid-template-rows:repeat(7,12px);gap:3px;
+  color:var(--muted);font-size:9px;line-height:12px
+}
+.heat{
+  display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);
+  grid-auto-columns:12px;gap:3px;overflow:hidden
+}
+.cell{
+  width:12px;height:12px;border-radius:3px;background:var(--empty);
+  outline:1px solid rgba(0,0,0,.025)
+}
+.cell.today{outline:1.5px solid var(--today)}
+.l1{background:var(--l1)}.l2{background:var(--l2)}
+.l3{background:var(--l3)}.l4{background:var(--l4)}
+.l5{background:var(--l5)}.l6{background:var(--l6)}
+.month-view{
+  display:none;grid-template-columns:repeat(7,minmax(38px,1fr));gap:5px
+}
+.month-head{text-align:center;color:var(--muted);font-size:10px}
+.month-cell{
+  min-height:42px;border:1px solid var(--line);border-radius:7px;
+  padding:5px;background:var(--bg);font-size:10px;color:var(--muted)
+}
+.month-cell b{display:block;color:var(--text);font-size:12px}
+.month-cell.hit{border-color:transparent;color:#fff}
+.month-cell.hit b{color:#fff}
+.footer{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:10px;color:var(--muted);font-size:10px
+}
+.legend{display:flex;align-items:center;gap:4px}
+.swatch{width:10px;height:10px;border-radius:2px}
+.tooltip{
+  position:fixed;display:none;z-index:10;pointer-events:none;
+  padding:8px 10px;border-radius:7px;background:#252b2e;color:#fff;
+  font-size:11px;line-height:1.5;box-shadow:0 5px 18px rgba(0,0,0,.2)
+}
+.error{
+  margin:12px;padding:12px;border:1px solid #e3a3a3;
+  border-radius:8px;background:#fff2f2;color:#8a2b2b;font-size:12px
+}
+@media(max-width:700px){
+  .header{display:block}
+  .controls{margin-top:10px;justify-content:space-between}
+  .metrics{gap:13px}
+  .metric strong{font-size:15px}
+  .heat{grid-auto-columns:10px;grid-template-rows:repeat(7,10px);gap:2px}
+  .cell{width:10px;height:10px}
+  .weekdays{grid-template-rows:repeat(7,10px);gap:2px;line-height:10px}
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#191919;--text:#f1f1ef;--muted:#aaa9a5;--panel:#242424;
+    --line:#343432;--empty:#30302f
+  }
+  .switch button.active{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="header">
+    <div class="metrics" id="metrics"></div>
+    <div class="controls">
+      <div class="nav">
+        <button id="previous" aria-label="上一时期">‹</button>
+        <span class="period" id="period"></span>
+        <button id="next" aria-label="下一时期">›</button>
+      </div>
+      <div class="switch">
+        <button class="active" data-mode="year">年度</button>
+        <button data-mode="month">本月</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="year-view" id="yearView">
+    <div class="year-labels" id="monthLabels"></div>
+    <div class="year-grid">
+      <div class="weekdays">
+        <span>一</span><span></span><span>三</span><span></span>
+        <span>五</span><span></span><span>日</span>
+      </div>
+      <div class="heat" id="heat"></div>
+    </div>
+  </div>
+
+  <div class="month-view" id="monthView"></div>
+
+  <div class="footer">
+    <span id="updated">正在读取数据…</span>
+    <div class="legend">
+      <span>少</span>
+      <i class="swatch" style="background:var(--empty)"></i>
+      <i class="swatch" style="background:var(--l1)"></i>
+      <i class="swatch" style="background:var(--l2)"></i>
+      <i class="swatch" style="background:var(--l3)"></i>
+      <i class="swatch" style="background:var(--l4)"></i>
+      <i class="swatch" style="background:var(--l6)"></i>
+      <span>多</span>
+    </div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const state={
+  mode:"year",
+  year:new Date().getFullYear(),
+  month:new Date().getMonth(),
+  payload:null
+};
+
+const $=id=>document.getElementById(id);
+const isoLocal=d=>{
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+};
+const monday=d=>{
+  const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  x.setDate(x.getDate()-((x.getDay()+6)%7));
+  return x;
+};
+const addDays=(d,n)=>{
+  const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  x.setDate(x.getDate()+n);
+  return x;
+};
+const sum=items=>items.reduce((total,item)=>total+item.minutes,0);
+const levelClass=level=>level?` l${level}`:"";
+const dateLabel=date=>new Intl.DateTimeFormat("zh-CN",{
+  year:"numeric",month:"long",day:"numeric",weekday:"short"
+}).format(date);
+const monthLabel=(year,month)=>`${year}年${month+1}月`;
+
+function dataMap(){
+  return Object.fromEntries(state.payload.days.map(item=>[item.date,item]));
+}
+
+function renderMetrics(){
+  const rows=state.payload.days;
+  const map=dataMap();
+  const today=new Date();
+  const start=monday(today);
+  const end=addDays(start,6);
+  const weekRows=rows.filter(x=>x.date>=isoLocal(start)&&x.date<=isoLocal(end));
+  const currentMonth=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
+  const monthRows=rows.filter(x=>x.date.startsWith(currentMonth));
+
+  let streak=0;
+  for(let d=new Date(today.getFullYear(),today.getMonth(),today.getDate());;d=addDays(d,-1)){
+    const row=map[isoLocal(d)];
+    if(!row || row.minutes<45) break;
+    streak++;
+  }
+
+  const effectiveDays=rows.filter(x=>x.minutes>=45).length;
+  const target=Number(state.payload.weekly_target_hours||20);
+
+  $("metrics").innerHTML=[
+    `<div class="metric"><strong>${(sum(weekRows)/60).toFixed(1)} / ${target}h</strong><span>本周正式学习</span></div>`,
+    `<div class="metric"><strong>${(sum(monthRows)/60).toFixed(1)}h</strong><span>本月累计</span></div>`,
+    `<div class="metric"><strong>${streak}天</strong><span>连续学习</span></div>`,
+    `<div class="metric"><strong>${effectiveDays}天</strong><span>有效学习日</span></div>`
+  ].join("");
+}
+
+function bindTooltip(element,date,row){
+  const tip=$("tooltip");
+  element.addEventListener("mouseenter",()=>{
+    tip.style.display="block";
+    tip.innerHTML=row
+      ? `<b>${dateLabel(date)}</b><br>${row.minutes}分钟 · ${row.record_count}次记录`
+      : `<b>${dateLabel(date)}</b><br>无正式学习记录`;
+  });
+  element.addEventListener("mousemove",event=>{
+    tip.style.left=`${event.clientX+12}px`;
+    tip.style.top=`${event.clientY+12}px`;
+  });
+  element.addEventListener("mouseleave",()=>tip.style.display="none");
+}
+
+function renderYear(){
+  const map=dataMap();
+  const year=state.year;
+  $("period").textContent=`${year}年`;
+  $("heat").innerHTML="";
+  $("monthLabels").innerHTML="";
+
+  let start=monday(new Date(year,0,1));
+  let end=new Date(year,11,31);
+  end=addDays(end,(7-end.getDay())%7);
+
+  const totalWeeks=Math.ceil((end-start)/(7*86400000))+1;
+  for(let month=0;month<12;month++){
+    const first=new Date(year,month,1);
+    const week=Math.max(0,Math.floor((first-start)/(7*86400000)));
+    const label=document.createElement("span");
+    label.textContent=`${month+1}月`;
+    label.style.position="absolute";
+    label.style.left=`${(week/Math.max(totalWeeks,1))*100}%`;
+    $("monthLabels").appendChild(label);
+  }
+
+  const todayKey=isoLocal(new Date());
+  for(let d=new Date(start);d<=end;d=addDays(d,1)){
+    const key=isoLocal(d);
+    const row=map[key];
+    const cell=document.createElement("div");
+    cell.className=`cell${levelClass(row?.level)}${key===todayKey?" today":""}`;
+    bindTooltip(cell,d,row);
+    $("heat").appendChild(cell);
+  }
+}
+
+function renderMonth(){
+  const map=dataMap();
+  const year=state.year;
+  const month=state.month;
+  $("period").textContent=monthLabel(year,month);
+  $("monthView").innerHTML="";
+
+  ["一","二","三","四","五","六","日"].forEach(name=>{
+    const head=document.createElement("div");
+    head.className="month-head";
+    head.textContent=name;
+    $("monthView").appendChild(head);
+  });
+
+  const first=new Date(year,month,1);
+  const last=new Date(year,month+1,0);
+  const offset=(first.getDay()+6)%7;
+  for(let i=0;i<offset;i++){
+    $("monthView").appendChild(document.createElement("div"));
+  }
+
+  for(let day=1;day<=last.getDate();day++){
+    const date=new Date(year,month,day);
+    const key=isoLocal(date);
+    const row=map[key];
+    const cell=document.createElement("div");
+    cell.className=`month-cell${row?" hit":""}`;
+    if(row){
+      cell.style.background=`var(--l${Math.max(1,row.level)})`;
+    }
+    cell.innerHTML=`<b>${day}</b>${row?`${row.minutes}分钟`:""}`;
+    bindTooltip(cell,date,row);
+    $("monthView").appendChild(cell);
+  }
+}
+
+function render(){
+  const yearMode=state.mode==="year";
+  $("yearView").style.display=yearMode?"block":"none";
+  $("monthView").style.display=yearMode?"none":"grid";
+  if(yearMode) renderYear(); else renderMonth();
+}
+
+document.querySelectorAll(".switch button").forEach(button=>{
+  button.addEventListener("click",()=>{
+    document.querySelectorAll(".switch button").forEach(x=>x.classList.remove("active"));
+    button.classList.add("active");
+    state.mode=button.dataset.mode;
+    const now=new Date();
+    if(state.mode==="month" && state.year===now.getFullYear()){
+      state.month=now.getMonth();
+    }
+    render();
+  });
+});
+
+$("previous").addEventListener("click",()=>{
+  if(state.mode==="year"){
+    state.year--;
+  }else{
+    state.month--;
+    if(state.month<0){state.month=11;state.year--}
+  }
+  render();
+});
+
+$("next").addEventListener("click",()=>{
+  if(state.mode==="year"){
+    state.year++;
+  }else{
+    state.month++;
+    if(state.month>11){state.month=0;state.year++}
+  }
+  render();
+});
+
+async function init(){
+  try{
+    const response=await fetch("data.json",{cache:"no-store"});
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    state.payload=await response.json();
+    renderMetrics();
+    render();
+
+    const generated=new Date(state.payload.generated_at);
+    $("updated").textContent=`自动同步于 ${generated.toLocaleString("zh-CN")}`;
+  }catch(error){
+    document.querySelector(".shell").insertAdjacentHTML(
+      "afterbegin",
+      `<div class="error">热力图数据加载失败：${error.message}</div>`
+    );
+    $("updated").textContent="同步状态不可用";
+  }
+}
+init();
+</script>
+</body>
+</html>

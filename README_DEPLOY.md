@@ -166,16 +166,8 @@ Read Notion and build voyage data
 - 总进度为2/326小时
 - 不再显示第1章标题
 
-## 与现有三张图兼容
+## 注意
 
-新版 `build.py` 会同时生成：
+此版build.py专门生成两个新组件的数据。仓库现有热力图、周图和累计图的已有JSON文件不会被删除，但若旧版build.py原本同时重建它们，本轮替换后它们不会继续更新。
 
-```text
-data.json
-weekly-data.json
-progress-data.json
-polar-progress-data.json
-phase-voyage-data.json
-```
-
-因此现有热力图、每周学习小时图和累计计划图仍会继续自动更新。
+若确认两个新组件正常，我会在下一版把旧图表的数据生成逻辑重新合并回同一个build.py，形成最终统一构建器。这样做是为了先隔离测试新组件，降低排错复杂度。

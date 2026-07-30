@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T05:45:00+00:00",
+  "generated_at": "2026-07-30T05:30:00+00:00",
   "today": {
     "date": "2026-07-30",
     "minutes": 0,
@@ -8,65 +8,52 @@
   },
   "week": {
     "label": "7月29日—8月4日",
-    "actual_hours": 2,
+    "actual_hours": 2.0,
     "target_hours": 20,
     "completion_pct": 10,
     "remaining_hours": 18
   },
   "overall": {
-    "actual_hours": 2,
+    "actual_hours": 2.0,
     "plan_total_hours": 326,
     "completion_pct": 0.6,
-    "visual_progress_pct": 1.5,
     "planned_to_date_hours": 5.7,
     "gap_hours": -3.7,
     "passed_chapters": 0,
     "total_chapters": 15
-  },
-  "context": {
-    "number": 1,
-    "title": "第1章｜海洋是一个怎样的物理系统",
-    "status": "学习中",
-    "current_unit": "已完成1.1—1.4；下一单元1.5",
-    "next_action": "进入1.5",
-    "actual_hours": 2,
-    "expected_hours": 4
-  },
-  "current_phase": {
-    "id": 1,
-    "name": "基础语言与海洋结构",
-    "short": "基础",
-    "milestone": "完成第1—5章"
   },
   "phases": [
     {
       "id": 1,
       "name": "基础语言与海洋结构",
       "short": "基础",
+      "completed_chapters": 0,
+      "total_chapters": 5,
       "complete": false
     },
     {
       "id": 2,
       "name": "旋转海洋与收支",
       "short": "动力",
+      "completed_chapters": 0,
+      "total_chapters": 4,
       "complete": false
     },
     {
       "id": 3,
       "name": "极地过程与区域整合",
       "short": "极地",
+      "completed_chapters": 0,
+      "total_chapters": 4,
       "complete": false
     },
     {
       "id": 4,
       "name": "气候动力与综合验收",
       "short": "验收",
+      "completed_chapters": 0,
+      "total_chapters": 2,
       "complete": false
     }
-  ],
-  "diagnostics": {
-    "active_chapter_count": 1,
-    "unknown_statuses": [],
-    "missing_expected_hours": []
-  }
+  ]
 }

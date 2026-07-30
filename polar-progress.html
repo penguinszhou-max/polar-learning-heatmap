@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>极地学习航标</title>
+<style>
+:root{
+  --ink:#173452;--muted:#65788d;--line:rgba(50,101,151,.18);
+  --blue:#2f77bd;--blue-soft:#7eb3df;--panel:rgba(255,255,255,.86);
+  --progress:0%;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:var(--ink)}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.card{
+  position:relative;overflow:hidden;border-radius:16px;min-height:430px;
+  border:1px solid rgba(64,119,169,.20);
+  background:
+    linear-gradient(180deg,rgba(248,252,255,.90),rgba(238,247,253,.80)),
+    url("assets/polar-beacon-bg.webp") center/cover no-repeat;
+  box-shadow:0 8px 26px rgba(37,80,119,.10)
+}
+.card::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.72) 0 48%,rgba(220,240,250,.12) 100%);
+  pointer-events:none
+}
+.inner{position:relative;z-index:1;padding:22px 24px 18px}
+.header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.title{font-size:22px;font-weight:760;letter-spacing:.03em}
+.subtitle{font-size:11px;color:var(--muted);margin-top:5px}
+.sync{font-size:10px;color:var(--muted);padding-top:5px;white-space:nowrap}
+.metrics{
+  margin-top:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  border:1px solid var(--line);border-radius:13px;background:var(--panel);
+  backdrop-filter:blur(8px)
+}
+.metric{padding:16px 18px;min-height:108px;position:relative}
+.metric+.metric{border-left:1px solid var(--line)}
+.label{font-size:11px;color:var(--muted)}
+.value{font-size:23px;font-weight:760;margin-top:6px}
+.note{font-size:10px;color:var(--muted);margin-top:7px}
+.bar{height:5px;background:rgba(58,112,162,.13);border-radius:999px;overflow:hidden;margin-top:10px}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--blue-soft));border-radius:999px;transition:width .8s ease}
+.route{
+  position:relative;margin-top:18px;height:190px;border-radius:13px;
+  border:1px solid var(--line);overflow:hidden;background:rgba(242,250,254,.40)
+}
+.route::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.36),rgba(190,224,240,.08));
+}
+.path{
+  position:absolute;left:7%;right:7%;top:96px;height:2px;
+  border-top:2px dashed rgba(255,255,255,.95);
+  filter:drop-shadow(0 1px 1px rgba(32,79,117,.35))
+}
+.progress-line{
+  position:absolute;left:7%;top:96px;width:calc(var(--progress)*.86);
+  height:2px;background:var(--blue);transition:width .9s ease
+}
+.marker{
+  position:absolute;top:84px;transform:translateX(-50%);
+  text-align:center;width:120px
+}
+.dot{
+  margin:auto;width:15px;height:15px;border-radius:50%;background:#fff;
+  border:4px solid #78b2df;box-shadow:0 2px 8px rgba(28,80,122,.18)
+}
+.marker.done .dot{background:var(--blue);border-color:#d9edfa}
+.marker strong{display:block;font-size:12px;margin-top:11px}
+.marker small{font-size:9px;color:var(--muted)}
+.beacon{
+  position:absolute;top:55px;left:calc(7% + var(--progress)*.86);
+  transform:translateX(-50%);transition:left .9s ease;
+  width:42px;height:42px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.9);
+  background:rgba(255,255,255,.72);
+  box-shadow:0 5px 18px rgba(28,79,121,.25);
+  display:grid;place-items:center;animation:float 3.6s ease-in-out infinite
+}
+.beacon::before{
+  content:"";width:23px;height:23px;display:block;
+  background:linear-gradient(145deg,#eefaff,#9dd0ec);
+  clip-path:polygon(50% 0,61% 35%,100% 50%,63% 62%,50% 100%,38% 63%,0 50%,37% 36%)
+}
+.foot{display:flex;justify-content:space-between;gap:10px;font-size:9px;color:var(--muted);margin-top:9px}
+.error{padding:16px;background:#fff3f3;color:#8b3232;border-radius:10px}
+@keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
+@media(max-width:760px){
+  .card{min-height:600px}.inner{padding:16px}.metrics{grid-template-columns:1fr}
+  .metric+.metric{border-left:0;border-top:1px solid var(--line)}
+  .route{height:180px}.title{font-size:19px}.sync{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="inner" id="app">
+    <div class="header">
+      <div><div class="title">极地学习航标</div><div class="subtitle">今日记录 · 当前学习周 · 整体课程推进</div></div>
+      <div class="sync" id="sync">正在同步</div>
+    </div>
+    <div class="metrics">
+      <div class="metric">
+        <div class="label">今日正式学习</div>
+        <div class="value" id="today">—</div>
+        <div class="note" id="todayNote">读取正式学习记录</div>
+      </div>
+      <div class="metric">
+        <div class="label">当前学习周</div>
+        <div class="value" id="week">—</div>
+        <div class="note" id="weekNote">—</div>
+        <div class="bar"><span id="weekBar"></span></div>
+      </div>
+      <div class="metric">
+        <div class="label">整体课程推进</div>
+        <div class="value" id="overall">—</div>
+        <div class="note" id="overallNote">—</div>
+        <div class="bar"><span id="overallBar"></span></div>
+      </div>
+    </div>
+    <div class="route">
+      <div class="path"></div><div class="progress-line"></div>
+      <div class="beacon"></div>
+      <div class="marker" style="left:7%"><div class="dot"></div><strong>起点</strong><small>0%</small></div>
+      <div class="marker" data-phase="1" style="left:28.5%"><div class="dot"></div><strong>基础</strong><small>25%</small></div>
+      <div class="marker" data-phase="2" style="left:50%"><div class="dot"></div><strong>动力</strong><small>50%</small></div>
+      <div class="marker" data-phase="3" style="left:71.5%"><div class="dot"></div><strong>极地</strong><small>75%</small></div>
+      <div class="marker" data-phase="4" style="left:93%"><div class="dot"></div><strong>验收</strong><small>100%</small></div>
+    </div>
+    <div class="foot"><span id="gap">实际与计划差额：—</span><span id="updated">—</span></div>
+  </div>
+</div>
+<script>
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const f=v=>Number(v||0).toFixed(1);
+async function load(){
+  const r=await fetch("polar-progress-data.json?ts="+Date.now(),{cache:"no-store"});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const d=await r.json();
+  document.getElementById("today").textContent=d.today.minutes+"分钟";
+  document.getElementById("todayNote").textContent=d.today.has_learning
+    ? `已形成 ${d.today.record_count} 条正式记录`
+    : "今日尚未记录正式学习";
+  document.getElementById("week").textContent=`${f(d.week.actual_hours)} / ${d.week.target_hours}小时`;
+  document.getElementById("weekNote").textContent=`${d.week.label} · 尚需 ${f(d.week.remaining_hours)}小时`;
+  document.getElementById("weekBar").style.width=clamp(d.week.completion_pct,0,100)+"%";
+  document.getElementById("overall").textContent=`${f(d.overall.actual_hours)} / ${d.overall.plan_total_hours}小时`;
+  document.getElementById("overallNote").textContent=`已通过 ${d.overall.passed_chapters} / ${d.overall.total_chapters}章`;
+  document.getElementById("overallBar").style.width=clamp(d.overall.completion_pct,0,100)+"%";
+  document.documentElement.style.setProperty("--progress",clamp(d.overall.completion_pct,0,100)+"%");
+  d.phases.forEach(p=>{
+    if(p.complete)document.querySelector(`[data-phase="${p.id}"]`)?.classList.add("done");
+  });
+  const gap=Number(d.overall.gap_hours||0);
+  document.getElementById("gap").textContent=`实际与计划差额：${gap>=0?"+":""}${f(gap)}小时`;
+  const t=new Date(d.generated_at).toLocaleString("zh-CN");
+  document.getElementById("sync").textContent="数据自动同步于 "+t;
+  document.getElementById("updated").textContent="最后更新 "+t;
+}
+load().catch(e=>document.getElementById("app").innerHTML=`<div class="error">加载失败：${e.message}</div>`);
+</script>
+</body>
+</html>

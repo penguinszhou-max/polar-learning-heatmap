@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>阶段航线</title>
+<style>
+:root{
+  --ink:#173452;--muted:#66798d;--blue:#2876ba;--line:rgba(47,104,155,.17);
+  --route:0%;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:var(--ink)}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.card{
+  position:relative;overflow:hidden;border-radius:16px;min-height:470px;
+  border:1px solid rgba(64,119,169,.20);
+  background:
+    linear-gradient(180deg,rgba(250,253,255,.94),rgba(231,245,252,.74)),
+    url("assets/phase-sea-bg.webp") center/cover no-repeat;
+  box-shadow:0 8px 26px rgba(37,80,119,.09)
+}
+.card::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.68),rgba(217,239,249,.13) 55%,rgba(45,119,166,.13));
+  pointer-events:none
+}
+.inner{position:relative;z-index:1;padding:20px 24px 15px}
+.head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+.title{font-size:19px;font-weight:760}.meta{font-size:11px;color:var(--muted);margin-top:5px}
+.phase-progress{text-align:right;min-width:190px}
+.phase-progress strong{font-size:16px}.phase-progress small{display:block;color:var(--muted);font-size:9px;margin-top:4px}
+.mini{height:5px;background:rgba(52,107,157,.13);border-radius:999px;overflow:hidden;margin-top:8px}
+.mini span{display:block;height:100%;width:0;background:var(--blue);border-radius:999px;transition:width .8s ease}
+.route{
+  position:relative;height:285px;margin-top:10px;
+  border-radius:13px;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(204,235,247,.13))
+}
+.wave{
+  position:absolute;left:3%;right:3%;top:151px;height:58px;
+}
+.wave svg{width:100%;height:100%;overflow:visible}
+.wave path.base{fill:none;stroke:rgba(50,121,174,.32);stroke-width:3;stroke-dasharray:5 6}
+.wave path.done{fill:none;stroke:var(--blue);stroke-width:3;stroke-dasharray:5 6}
+.boat{
+  position:absolute;z-index:5;width:92px;left:calc(3% + var(--route)*.94);
+  top:102px;transform:translate(-45%,-50%);transition:left .9s ease;
+  filter:drop-shadow(0 7px 8px rgba(37,79,113,.18));
+  animation:sail 4.2s ease-in-out infinite
+}
+.islands{position:absolute;left:8%;right:5%;top:82px;height:155px}
+.island{
+  position:absolute;transform:translateX(-50%);width:118px;text-align:center;
+  cursor:default
+}
+.island img{width:102px;height:76px;object-fit:contain;filter:saturate(.72) opacity(.76);transition:.3s ease}
+.island.active img{filter:saturate(.98) opacity(1);transform:translateY(-4px);drop-shadow:0 8px 10px rgba(41,88,126,.18)}
+.island.passed img{filter:saturate(1) opacity(1)}
+.island.goal img{width:116px;height:88px}
+.chapter-label{
+  display:inline-block;margin-top:-5px;padding:4px 8px;border-radius:7px;
+  font-size:10px;font-weight:700;background:rgba(255,255,255,.82);
+  border:1px solid rgba(49,105,155,.13);white-space:nowrap
+}
+.status{font-size:9px;color:var(--muted);margin-top:3px}
+.island.active .chapter-label{background:#2f77bd;color:#fff;border-color:#2f77bd}
+.island.passed .status{color:#256da8;font-weight:650}
+.summary{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:10px;
+  border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.84);
+  backdrop-filter:blur(7px)
+}
+.item{padding:11px 13px;min-height:59px}.item+.item{border-left:1px solid var(--line)}
+.item b{display:block;font-size:10px}.item span{display:block;color:var(--muted);font-size:9px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.footer{text-align:right;font-size:9px;color:var(--muted);margin-top:8px}
+.error{padding:16px;background:#fff3f3;color:#8b3232;border-radius:10px}
+@keyframes sail{0%,100%{transform:translate(-45%,-50%) rotate(-1deg) translateY(0)}50%{transform:translate(-45%,-50%) rotate(1deg) translateY(-4px)}}
+@media(max-width:900px){
+  .card{min-height:650px}.head{display:block}.phase-progress{text-align:left;margin-top:12px}
+  .route{height:355px;overflow-x:auto}.islands{min-width:850px}.wave{min-width:850px}
+  .boat{width:78px}.summary{grid-template-columns:1fr 1fr}.item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.item:nth-child(4){border-top:1px solid var(--line)}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="inner" id="app">
+    <div class="head">
+      <div><div class="title" id="title">阶段航线</div><div class="meta" id="meta">正在读取当前阶段</div></div>
+      <div class="phase-progress"><strong id="progressText">—</strong><small id="dateText">—</small><div class="mini"><span id="progressBar"></span></div></div>
+    </div>
+    <div class="route">
+      <div class="wave">
+        <svg viewBox="0 0 1000 100" preserveAspectRatio="none">
+          <path class="base" d="M0 55 C70 8 120 95 190 48 S310 15 380 64 S500 92 570 42 S690 8 760 57 S900 92 1000 38"/>
+          <path class="done" id="donePath" pathLength="100" stroke-dasharray="0 100" d="M0 55 C70 8 120 95 190 48 S310 15 380 64 S500 92 570 42 S690 8 760 57 S900 92 1000 38"/>
+        </svg>
+      </div>
+      <img class="boat" src="assets/sailboat.webp" alt="阶段航船">
+      <div class="islands" id="islands"></div>
+    </div>
+    <div class="summary">
+      <div class="item"><b>阶段目标</b><span id="goal">—</span></div>
+      <div class="item"><b>当前聚焦</b><span id="focus">—</span></div>
+      <div class="item"><b>下一站</b><span id="next">—</span></div>
+      <div class="item"><b>完成标志</b><span>完成本阶段全部章节并升起阶段旗帜</span></div>
+    </div>
+    <div class="footer" id="updated">—</div>
+  </div>
+</div>
+<script>
+const f=v=>Number(v||0).toFixed(0);
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+async function load(){
+  const r=await fetch("phase-voyage-data.json?ts="+Date.now(),{cache:"no-store"});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const d=await r.json(), p=d.phase;
+  document.getElementById("title").textContent=`阶段航线｜${p.short}阶段`;
+  document.getElementById("meta").textContent=`${p.name}（第${p.start_chapter}—${p.end_chapter}章）`;
+  document.getElementById("progressText").textContent=`${p.completed_chapters} / ${p.total_chapters}章`;
+  document.getElementById("dateText").textContent=p.date_label;
+  document.getElementById("progressBar").style.width=Math.min(100,p.completion_pct)+"%";
+  document.documentElement.style.setProperty("--route",Math.min(100,p.route_progress_pct)+"%");
+  document.getElementById("donePath").setAttribute("stroke-dasharray",`${p.route_progress_pct} ${100-p.route_progress_pct}`);
+  document.getElementById("goal").textContent=`完成第${p.start_chapter}—${p.end_chapter}章`;
+  document.getElementById("focus").textContent=d.current_chapter
+    ? `第${d.current_chapter.number}章｜${d.current_chapter.title}`:"阶段已完成";
+  document.getElementById("next").textContent=d.next_chapter
+    ? `第${d.next_chapter.number}章｜${d.next_chapter.title}`:"抵达阶段目标岛";
+
+  const items=[...d.chapters,{number:"目标",title:"阶段目标岛",status:p.complete?"已抵达":"等待抵达",goal:true,passed:p.complete,active:false}];
+  const host=document.getElementById("islands");
+  host.innerHTML=items.map((c,i)=>{
+    const left=(i+1)/(items.length+1)*100;
+    const cls=["island",c.goal?"goal":"",c.passed?"passed":"",c.active?"active":""].filter(Boolean).join(" ");
+    let asset="island-neutral.webp";
+    if(c.goal)asset=p.complete?"island-goal.webp":"island-pending.webp";
+    else if(c.passed)asset="island-complete.webp";
+    else if(c.active)asset="island-neutral.webp";
+    else asset="island-pending.webp";
+    const label=c.goal?"阶段目标岛":`第${c.number}章`;
+    const status=c.goal?(p.complete?"已抵达":"终点"):c.status;
+    return `<div class="${cls}" style="left:${left}%">
+      <img src="assets/${asset}" alt="${esc(label)}">
+      <div class="chapter-label">${esc(label)}</div>
+      <div class="status">${esc(status)}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("updated").textContent="自动同步于 "+new Date(d.generated_at).toLocaleString("zh-CN");
+}
+load().catch(e=>document.getElementById("app").innerHTML=`<div class="error">加载失败：${e.message}</div>`);
+</script>
+</body>
+</html>

@@ -13,16 +13,37 @@ from zoneinfo import ZoneInfo
 import requests
 
 NOTION_API_BASE = "https://api.notion.com/v1"
-NOTION_VERSION = "2026-03-11"
+NOTION_VERSION = os.environ.get("NOTION_VERSION", "2025-09-03")
 
 TOKEN = os.environ.get("NOTION_TOKEN", "").strip()
-DATA_SOURCE_ID = os.environ.get("LEARNING_RECORDS_DATA_SOURCE_ID", "").strip()
+LEARNING_RECORDS_DATA_SOURCE_ID = os.environ.get(
+    "LEARNING_RECORDS_DATA_SOURCE_ID", ""
+).strip()
+CHAPTERS_DATA_SOURCE_ID = os.environ.get(
+    "CHAPTERS_DATA_SOURCE_ID", ""
+).strip()
+
 WEEKLY_TARGET_HOURS = float(os.environ.get("WEEKLY_TARGET_HOURS", "20"))
-TIMEZONE_NAME = os.environ.get("TIMEZONE", "Asia/Singapore")
+ACTIVE_DAYS_PER_WEEK = max(
+    1, int(os.environ.get("ACTIVE_DAYS_PER_WEEK", "6"))
+)
+TIMEZONE_NAME = os.environ.get("TIMEZONE", "Asia/Shanghai")
 
 DATE_PROPERTY = os.environ.get("DATE_PROPERTY", "日期")
 MINUTES_PROPERTY = os.environ.get("MINUTES_PROPERTY", "实际分钟")
 COUNT_PROPERTY = os.environ.get("COUNT_PROPERTY", "是否计入正式时长")
+
+CHAPTER_TITLE_PROPERTY = os.environ.get("CHAPTER_TITLE_PROPERTY", "章节")
+CHAPTER_STATUS_PROPERTY = os.environ.get("CHAPTER_STATUS_PROPERTY", "状态")
+CHAPTER_NUMBER_PROPERTY = os.environ.get("CHAPTER_NUMBER_PROPERTY", "章节编号")
+CURRENT_UNIT_PROPERTY = os.environ.get("CURRENT_UNIT_PROPERTY", "当前学习单元")
+NEXT_ACTION_PROPERTY = os.environ.get("NEXT_ACTION_PROPERTY", "下一动作")
+CHAPTER_ACTUAL_HOURS_PROPERTY = os.environ.get(
+    "CHAPTER_ACTUAL_HOURS_PROPERTY", "实际学习小时"
+)
+CHAPTER_EXPECTED_HOURS_PROPERTY = os.environ.get(
+    "CHAPTER_EXPECTED_HOURS_PROPERTY", "预计小时"
+)
 
 PUBLIC_DIR = Path("public")
 PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
@@ -57,12 +78,15 @@ def validate_environment() -> None:
     missing = []
     if not TOKEN:
         missing.append("NOTION_TOKEN")
-    if not DATA_SOURCE_ID:
+    if not LEARNING_RECORDS_DATA_SOURCE_ID:
         missing.append("LEARNING_RECORDS_DATA_SOURCE_ID")
+    if not CHAPTERS_DATA_SOURCE_ID:
+        missing.append("CHAPTERS_DATA_SOURCE_ID")
+
     if missing:
         raise SystemExit(
             "缺少GitHub Secret：" + ", ".join(missing)
-            + "。请按README配置后重新运行工作流。"
+            + "。请按照README配置后重新运行工作流。"
         )
 
 
@@ -107,18 +131,18 @@ def notion_request(
             time.sleep(min(delay + random.random(), 12))
             continue
 
-        detail = response.text[:1000]
+        detail = response.text[:1200]
         if response.status_code == 401:
-            hint = "请检查GitHub Secret NOTION_TOKEN。"
+            hint = "请检查NOTION_TOKEN。"
         elif response.status_code == 403:
             hint = "内部连接缺少Read content权限。"
         elif response.status_code == 404:
             hint = (
-                "请确认Data Source ID正确，并在“02｜学习记录”右上角"
-                "“••• → 连接”中添加该内部连接。"
+                "请检查Data Source ID，并确认01和02数据库均已连接到"
+                "同一个Notion内部连接。"
             )
         else:
-            hint = "请查看GitHub Actions日志中的Notion错误信息。"
+            hint = "请查看GitHub Actions日志中的Notion错误。"
 
         raise NotionError(
             f"Notion API请求失败：HTTP {response.status_code}。{hint}\n{detail}"
@@ -127,41 +151,73 @@ def notion_request(
     raise NotionError("Notion API请求失败，已达到最大重试次数。")
 
 
-def query_learning_records() -> list[dict[str, Any]]:
+def query_data_source(
+    data_source_id: str,
+    *,
+    filter_obj: dict[str, Any] | None = None,
+    sorts: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     cursor: str | None = None
 
     while True:
-        payload: dict[str, Any] = {
-            "page_size": 100,
-            "filter": {
-                "property": COUNT_PROPERTY,
-                "checkbox": {"equals": True},
-            },
-            "sorts": [
-                {
-                    "property": DATE_PROPERTY,
-                    "direction": "ascending",
-                }
-            ],
-        }
+        payload: dict[str, Any] = {"page_size": 100}
+        if filter_obj:
+            payload["filter"] = filter_obj
+        if sorts:
+            payload["sorts"] = sorts
         if cursor:
             payload["start_cursor"] = cursor
 
         data = notion_request(
             "POST",
-            f"/data_sources/{DATA_SOURCE_ID}/query",
+            f"/data_sources/{data_source_id}/query",
             payload=payload,
         )
         results.extend(data.get("results", []))
 
         if not data.get("has_more"):
             break
+
         cursor = data.get("next_cursor")
         if not cursor:
             break
 
     return results
+
+
+def query_learning_records() -> list[dict[str, Any]]:
+    return query_data_source(
+        LEARNING_RECORDS_DATA_SOURCE_ID,
+        filter_obj={
+            "property": COUNT_PROPERTY,
+            "checkbox": {"equals": True},
+        },
+        sorts=[
+            {
+                "property": DATE_PROPERTY,
+                "direction": "ascending",
+            }
+        ],
+    )
+
+
+def query_chapters() -> list[dict[str, Any]]:
+    return query_data_source(
+        CHAPTERS_DATA_SOURCE_ID,
+        sorts=[
+            {
+                "property": CHAPTER_NUMBER_PROPERTY,
+                "direction": "ascending",
+            }
+        ],
+    )
+
+
+def rich_text_to_plain(items: list[dict[str, Any]] | None) -> str:
+    if not items:
+        return ""
+    return "".join(str(item.get("plain_text", "")) for item in items).strip()
 
 
 def parse_date(prop: dict[str, Any]) -> date | None:
@@ -178,13 +234,52 @@ def parse_date(prop: dict[str, Any]) -> date | None:
 
 
 def parse_number(prop: dict[str, Any]) -> float:
-    value = prop.get("number")
+    prop_type = prop.get("type")
+
+    if prop_type == "number":
+        value = prop.get("number")
+    elif prop_type == "formula":
+        formula = prop.get("formula") or {}
+        value = formula.get("number")
+    elif prop_type == "rollup":
+        rollup = prop.get("rollup") or {}
+        value = rollup.get("number")
+    else:
+        value = prop.get("number")
+
     if value is None:
         return 0.0
     try:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+def parse_text(prop: dict[str, Any]) -> str:
+    prop_type = prop.get("type")
+
+    if prop_type == "title":
+        return rich_text_to_plain(prop.get("title"))
+    if prop_type == "rich_text":
+        return rich_text_to_plain(prop.get("rich_text"))
+    if prop_type == "select":
+        selected = prop.get("select")
+        return str(selected.get("name", "")).strip() if selected else ""
+    if prop_type == "status":
+        selected = prop.get("status")
+        return str(selected.get("name", "")).strip() if selected else ""
+    if prop_type == "formula":
+        formula = prop.get("formula") or {}
+        formula_type = formula.get("type")
+        if formula_type == "string":
+            return str(formula.get("string") or "").strip()
+        if formula_type == "number":
+            number = formula.get("number")
+            return "" if number is None else str(number)
+        if formula_type == "boolean":
+            return "是" if formula.get("boolean") else "否"
+
+    return ""
 
 
 def intensity(minutes: int) -> int:
@@ -201,6 +296,16 @@ def intensity(minutes: int) -> int:
     if minutes < 270:
         return 5
     return 6
+
+
+def format_range_label(start: date, end: date) -> str:
+    if start.month == end.month:
+        return f"{start.month}月{start.day}日—{end.day}日"
+    return f"{start.month}月{start.day}日—{end.month}月{end.day}日"
+
+
+def format_compact_range(start: date, end: date) -> str:
+    return f"{start.month}.{start.day}–{end.month}.{end.day}"
 
 
 def aggregate_daily(records: list[dict[str, Any]]) -> dict[date, dict[str, int]]:
@@ -258,7 +363,7 @@ def weekly_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
     weeks = []
     total_actual = 0.0
 
-    for name, start, end, target in WEEK_PLAN:
+    for internal_id, start, end, target in WEEK_PLAN:
         actual_minutes = sum(
             values["minutes"]
             for day, values in by_day.items()
@@ -268,7 +373,9 @@ def weekly_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
         total_actual += actual_hours
         weeks.append(
             {
-                "week": name,
+                "internal_id": internal_id,
+                "label": format_compact_range(start, end),
+                "date_label": format_range_label(start, end),
                 "start": start.isoformat(),
                 "end": end.isoformat(),
                 "target_hours": target,
@@ -280,9 +387,13 @@ def weekly_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
 
     local_today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
     current_week = next(
-        (item for item in weeks
-         if date.fromisoformat(item["start"]) <= local_today
-         <= date.fromisoformat(item["end"])),
+        (
+            item
+            for item in weeks
+            if date.fromisoformat(item["start"])
+            <= local_today
+            <= date.fromisoformat(item["end"])
+        ),
         None,
     )
 
@@ -299,8 +410,11 @@ def weekly_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
 
 
 def planned_hours_on(day: date) -> float:
-    if day <= COURSE_START:
+    if day < COURSE_START:
         return 0.0
+    if day >= COURSE_END:
+        return float(sum(item[3] for item in WEEK_PLAN))
+
     cumulative = 0.0
 
     for _, start, end, target in WEEK_PLAN:
@@ -338,6 +452,7 @@ def progress_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
 
     planned_points = [{"date": COURSE_START.isoformat(), "hours": 0.0}]
     cumulative_plan = 0.0
+
     for _, _, end, target in WEEK_PLAN:
         cumulative_plan += target
         planned_points.append(
@@ -349,21 +464,191 @@ def progress_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
 
     planned_to_date = planned_hours_on(display_end)
     gap = round(cumulative_actual - planned_to_date, 2)
+    plan_total = sum(item[3] for item in WEEK_PLAN)
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "course_start": COURSE_START.isoformat(),
         "course_end": COURSE_END.isoformat(),
         "today": display_end.isoformat(),
-        "plan_total_hours": sum(item[3] for item in WEEK_PLAN),
+        "plan_total_hours": plan_total,
         "actual_total_hours": round(cumulative_actual, 2),
         "planned_to_date_hours": planned_to_date,
         "gap_hours": gap,
         "completion_pct": round(
-            cumulative_actual / sum(item[3] for item in WEEK_PLAN) * 100, 1
+            cumulative_actual / plan_total * 100, 1
         ),
         "actual_points": actual_points,
         "planned_points": planned_points,
+    }
+
+
+def parse_chapters(chapter_pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    chapters = []
+
+    for page in chapter_pages:
+        props = page.get("properties", {})
+        chapters.append(
+            {
+                "title": parse_text(props.get(CHAPTER_TITLE_PROPERTY, {})),
+                "status": parse_text(props.get(CHAPTER_STATUS_PROPERTY, {})),
+                "number": parse_number(props.get(CHAPTER_NUMBER_PROPERTY, {})),
+                "current_unit": parse_text(props.get(CURRENT_UNIT_PROPERTY, {})),
+                "next_action": parse_text(props.get(NEXT_ACTION_PROPERTY, {})),
+                "actual_hours": round(
+                    parse_number(props.get(CHAPTER_ACTUAL_HOURS_PROPERTY, {})),
+                    2,
+                ),
+                "expected_hours": round(
+                    parse_number(props.get(CHAPTER_EXPECTED_HOURS_PROPERTY, {})),
+                    2,
+                ),
+                "url": page.get("url", ""),
+            }
+        )
+
+    return chapters
+
+
+def current_week_info(local_today: date) -> dict[str, Any]:
+    for internal_id, start, end, target in WEEK_PLAN:
+        if start <= local_today <= end:
+            return {
+                "internal_id": internal_id,
+                "start": start,
+                "end": end,
+                "target_hours": target,
+            }
+
+    if local_today < COURSE_START:
+        internal_id, start, end, target = WEEK_PLAN[0]
+    else:
+        internal_id, start, end, target = WEEK_PLAN[-1]
+
+    return {
+        "internal_id": internal_id,
+        "start": start,
+        "end": end,
+        "target_hours": target,
+    }
+
+
+def today_status(actual_minutes: int, target_minutes: int) -> tuple[str, str]:
+    if actual_minutes <= 0:
+        return "not_started", "今日尚未记录正式学习"
+    if actual_minutes < target_minutes:
+        return "building", "今日仍在推进"
+    if actual_minutes < target_minutes * 1.2:
+        return "achieved", "今日节奏已达成"
+    return "exceeded", "今日投入已超额"
+
+
+def polar_progress_payload(
+    by_day: dict[date, dict[str, int]],
+    chapter_pages: list[dict[str, Any]],
+) -> dict[str, Any]:
+    local_today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
+    week = current_week_info(local_today)
+    chapters = parse_chapters(chapter_pages)
+
+    current_chapter = next(
+        (item for item in chapters if item["status"] == "学习中"),
+        None,
+    )
+
+    if current_chapter is None:
+        current_chapter = next(
+            (item for item in chapters if item["status"] not in {"已通过"}),
+            None,
+        )
+
+    passed_chapters = sum(
+        1 for item in chapters if item["status"] == "已通过"
+    )
+
+    today_minutes = by_day.get(local_today, {}).get("minutes", 0)
+    today_target_minutes = int(
+        round(week["target_hours"] * 60 / ACTIVE_DAYS_PER_WEEK)
+    )
+    today_pct = (
+        round(today_minutes / today_target_minutes * 100, 1)
+        if today_target_minutes
+        else 0.0
+    )
+    status_key, status_text = today_status(
+        today_minutes, today_target_minutes
+    )
+
+    week_minutes = sum(
+        values["minutes"]
+        for day, values in by_day.items()
+        if week["start"] <= day <= week["end"]
+    )
+    week_hours = round(week_minutes / 60, 2)
+    week_pct = round(
+        week_hours / week["target_hours"] * 100, 1
+    ) if week["target_hours"] else 0.0
+
+    total_minutes = sum(values["minutes"] for values in by_day.values())
+    total_hours = round(total_minutes / 60, 2)
+    total_plan_hours = sum(item[3] for item in WEEK_PLAN)
+    planned_to_date = planned_hours_on(local_today)
+    overall_pct = round(
+        total_hours / total_plan_hours * 100, 1
+    ) if total_plan_hours else 0.0
+    time_gap = round(total_hours - planned_to_date, 2)
+
+    chapter_payload = None
+    if current_chapter:
+        expected = current_chapter["expected_hours"]
+        chapter_pct = round(
+            current_chapter["actual_hours"] / expected * 100, 1
+        ) if expected else 0.0
+        chapter_payload = {
+            **current_chapter,
+            "progress_pct": chapter_pct,
+        }
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "timezone": TIMEZONE_NAME,
+        "today": {
+            "date": local_today.isoformat(),
+            "actual_minutes": today_minutes,
+            "target_minutes": today_target_minutes,
+            "completion_pct": today_pct,
+            "status": status_key,
+            "status_text": status_text,
+            "remaining_minutes": max(
+                0, today_target_minutes - today_minutes
+            ),
+            "surplus_minutes": max(
+                0, today_minutes - today_target_minutes
+            ),
+        },
+        "week": {
+            "label": format_range_label(week["start"], week["end"]),
+            "start": week["start"].isoformat(),
+            "end": week["end"].isoformat(),
+            "actual_hours": week_hours,
+            "target_hours": week["target_hours"],
+            "completion_pct": week_pct,
+            "remaining_hours": round(
+                max(0, week["target_hours"] - week_hours), 2
+            ),
+        },
+        "overall": {
+            "course_start": COURSE_START.isoformat(),
+            "course_end": COURSE_END.isoformat(),
+            "actual_hours": total_hours,
+            "planned_to_date_hours": planned_to_date,
+            "plan_total_hours": total_plan_hours,
+            "completion_pct": overall_pct,
+            "gap_hours": time_gap,
+            "passed_chapters": passed_chapters,
+            "total_chapters": len(chapters),
+        },
+        "current_chapter": chapter_payload,
     }
 
 
@@ -376,20 +661,30 @@ def write_json(filename: str, payload: dict[str, Any]) -> None:
 
 def main() -> None:
     validate_environment()
+
     records = query_learning_records()
+    chapter_pages = query_chapters()
     by_day = aggregate_daily(records)
 
     write_json("data.json", heatmap_payload(by_day))
     write_json("weekly-data.json", weekly_payload(by_day))
     write_json("progress-data.json", progress_payload(by_day))
+    write_json(
+        "polar-progress-data.json",
+        polar_progress_payload(by_day, chapter_pages),
+    )
     (PUBLIC_DIR / ".nojekyll").write_text("", encoding="utf-8")
 
     total_minutes = sum(values["minutes"] for values in by_day.values())
     print(
-        f"构建完成：{len(records)} 条正式记录，"
-        f"{len(by_day)} 个学习日，累计 {total_minutes} 分钟。"
+        f"构建完成：{len(records)}条正式学习记录，"
+        f"{len(chapter_pages)}个章节，"
+        f"{len(by_day)}个学习日，累计{total_minutes}分钟。"
     )
-    print("已生成：data.json、weekly-data.json、progress-data.json")
+    print(
+        "已生成：data.json、weekly-data.json、progress-data.json、"
+        "polar-progress-data.json"
+    )
 
 
 if __name__ == "__main__":

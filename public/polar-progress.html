@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>极地学习航标</title>
+<style>
+:root{
+  --bg:#ffffff;
+  --panel:#f7f9f9;
+  --text:#243035;
+  --muted:#738087;
+  --line:#dfe6e7;
+  --sea:#d9e8eb;
+  --sea-deep:#4d7d87;
+  --ice:#eaf5f7;
+  --ice-edge:#8cb5bd;
+  --good:#437b64;
+  --warn:#b17c3c;
+  --ahead:#7764a4;
+  --danger:#b45d50;
+  --progress:0%;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",
+  "PingFang SC","Microsoft YaHei",sans-serif
+}
+.shell{padding:14px 16px 10px}
+.header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;margin-bottom:10px
+}
+.title{font-size:15px;font-weight:700;letter-spacing:.02em}
+.subtitle{font-size:10px;color:var(--muted);margin-top:3px}
+.status{
+  font-size:11px;font-weight:650;padding:5px 9px;border-radius:999px;
+  background:var(--panel);white-space:nowrap
+}
+.status.not_started,.status.building{color:var(--warn)}
+.status.achieved{color:var(--good)}
+.status.exceeded{color:var(--ahead)}
+.metrics{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;margin-bottom:12px
+}
+.metric{
+  border:1px solid var(--line);border-radius:10px;
+  background:var(--panel);padding:9px 10px;min-height:66px
+}
+.metric-label{font-size:10px;color:var(--muted);margin-bottom:3px}
+.metric-value{font-size:16px;font-weight:720;line-height:1.3}
+.metric-note{
+  font-size:10px;color:var(--muted);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.progress-mini{
+  height:4px;background:var(--line);border-radius:999px;
+  overflow:hidden;margin-top:6px
+}
+.progress-mini span{
+  display:block;height:100%;width:0;background:var(--sea-deep);
+  border-radius:999px;transition:width .7s ease
+}
+.scene{
+  position:relative;border:1px solid var(--line);
+  border-radius:12px;background:
+    linear-gradient(180deg,#f8fbfc 0 46%,var(--sea) 47% 100%);
+  min-height:132px;overflow:hidden;padding:12px 12px 9px
+}
+.aurora{
+  position:absolute;inset:-35px 0 auto 0;height:85px;opacity:0;
+  background:
+    radial-gradient(ellipse at 35% 55%,rgba(116,193,171,.30),transparent 50%),
+    radial-gradient(ellipse at 65% 45%,rgba(139,117,186,.24),transparent 52%);
+  filter:blur(8px);transition:opacity .6s ease
+}
+body[data-state="exceeded"] .aurora{opacity:1}
+.track{
+  position:absolute;left:18px;right:18px;bottom:34px;height:5px;
+  border-radius:999px;background:rgba(77,125,135,.18)
+}
+.track-fill{
+  position:absolute;left:0;top:0;height:100%;width:var(--progress);
+  background:var(--sea-deep);border-radius:999px;
+  transition:width .9s ease
+}
+.marker{
+  position:absolute;bottom:27px;transform:translateX(-50%);
+  width:1px;height:18px;background:rgba(77,125,135,.35)
+}
+.marker::after{
+  content:attr(data-label);position:absolute;top:20px;left:50%;
+  transform:translateX(-50%);font-size:8px;color:var(--muted);
+  white-space:nowrap
+}
+.ice-wrap{
+  position:absolute;bottom:39px;left:clamp(18px,var(--progress),calc(100% - 18px));
+  transform:translateX(-50%);transition:left .9s ease;
+  z-index:3
+}
+.ice{
+  width:30px;height:24px;background:var(--ice);
+  border:1.5px solid var(--ice-edge);
+  clip-path:polygon(12% 45%,25% 8%,72% 3%,93% 38%,79% 92%,22% 95%);
+  box-shadow:0 4px 9px rgba(53,92,100,.16);
+  animation:drift 3.5s ease-in-out infinite
+}
+.ice::after{
+  content:"";position:absolute;width:14px;height:5px;
+  border-radius:50%;background:rgba(77,125,135,.16);
+  left:8px;bottom:-8px
+}
+body[data-state="achieved"] .ice{animation:float 2.6s ease-in-out infinite}
+body[data-state="exceeded"] .ice{animation:jump 2.1s ease-in-out infinite}
+.wave{
+  position:absolute;left:-3%;right:-3%;bottom:17px;height:22px;
+  opacity:.40;background:
+    radial-gradient(20px 7px at 20px 0,transparent 65%,rgba(255,255,255,.9) 68% 78%,transparent 81%)
+    0 0/40px 14px repeat-x
+}
+.chapter{
+  position:absolute;left:13px;right:13px;top:10px;z-index:2;
+  display:flex;justify-content:space-between;gap:12px;align-items:flex-start
+}
+.chapter-main{min-width:0}
+.chapter-title{
+  font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap
+}
+.chapter-unit{
+  margin-top:3px;font-size:10px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.chapter-progress{text-align:right;white-space:nowrap}
+.chapter-progress strong{display:block;font-size:13px}
+.chapter-progress span{font-size:9px;color:var(--muted)}
+.footer{
+  display:flex;justify-content:space-between;gap:12px;
+  color:var(--muted);font-size:9px;margin-top:7px
+}
+.error{
+  padding:12px;border:1px solid #e3a3a3;border-radius:8px;
+  background:#fff2f2;color:#8a2b2b;font-size:12px
+}
+@keyframes drift{
+  0%,100%{transform:translateY(0) rotate(-1deg)}
+  50%{transform:translateY(-3px) rotate(1deg)}
+}
+@keyframes float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+@keyframes jump{
+  0%,70%,100%{transform:translateY(0)}
+  78%{transform:translateY(-8px)}
+  86%{transform:translateY(-2px)}
+}
+@media(max-width:720px){
+  .metrics{grid-template-columns:1fr}
+  .metric{min-height:auto}
+  .scene{min-height:142px}
+  .header{align-items:center}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#191919;--panel:#242626;--text:#f0f1ef;--muted:#aaaead;
+    --line:#343a3b;--sea:#263b40;--sea-deep:#78a5ae;
+    --ice:#d8ecef;--ice-edge:#8cb5bd
+  }
+  .scene{
+    background:linear-gradient(180deg,#202728 0 46%,var(--sea) 47% 100%)
+  }
+}
+</style>
+</head>
+<body data-state="not_started">
+<div class="shell">
+  <div class="header">
+    <div>
+      <div class="title">极地学习航标</div>
+      <div class="subtitle">今日节奏 · 当前学习周 · 整体课程推进</div>
+    </div>
+    <div class="status not_started" id="status">正在同步</div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">今日正式学习</div>
+      <div class="metric-value" id="todayValue">—</div>
+      <div class="metric-note" id="todayNote">正在读取</div>
+      <div class="progress-mini"><span id="todayBar"></span></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">当前学习周</div>
+      <div class="metric-value" id="weekValue">—</div>
+      <div class="metric-note" id="weekNote">正在读取</div>
+      <div class="progress-mini"><span id="weekBar"></span></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">整体课程进度</div>
+      <div class="metric-value" id="overallValue">—</div>
+      <div class="metric-note" id="overallNote">正在读取</div>
+      <div class="progress-mini"><span id="overallBar"></span></div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="aurora"></div>
+    <div class="chapter">
+      <div class="chapter-main">
+        <div class="chapter-title" id="chapterTitle">当前章节正在同步</div>
+        <div class="chapter-unit" id="chapterUnit">—</div>
+      </div>
+      <div class="chapter-progress">
+        <strong id="chapterHours">—</strong>
+        <span>章节投入 / 预算</span>
+      </div>
+    </div>
+
+    <div class="track">
+      <div class="track-fill"></div>
+    </div>
+    <div class="marker" style="left:0%" data-label="起点"></div>
+    <div class="marker" style="left:25%" data-label="基础"></div>
+    <div class="marker" style="left:50%" data-label="动力"></div>
+    <div class="marker" style="left:75%" data-label="极地"></div>
+    <div class="marker" style="left:100%" data-label="验收"></div>
+    <div class="ice-wrap"><div class="ice"></div></div>
+    <div class="wave"></div>
+  </div>
+
+  <div class="footer">
+    <span id="gapText">实际与计划差额：—</span>
+    <span id="updated">正在读取数据…</span>
+  </div>
+</div>
+
+<script>
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+const oneDecimal=value=>Number(value||0).toFixed(1);
+
+function setBar(id,pct){
+  document.getElementById(id).style.width=clamp(Number(pct||0),0,100)+"%";
+}
+
+function render(data){
+  const today=data.today;
+  const week=data.week;
+  const overall=data.overall;
+  const chapter=data.current_chapter;
+
+  document.body.dataset.state=today.status;
+
+  const status=document.getElementById("status");
+  status.className="status "+today.status;
+  status.textContent=today.status_text;
+
+  document.getElementById("todayValue").textContent=
+    `${today.actual_minutes} / ${today.target_minutes}分钟`;
+
+  if(today.status==="exceeded"){
+    document.getElementById("todayNote").textContent=
+      `超额 ${today.surplus_minutes}分钟`;
+  }else if(today.status==="achieved"){
+    document.getElementById("todayNote").textContent="今日参考节奏已达到";
+  }else{
+    document.getElementById("todayNote").textContent=
+      `距离参考节奏 ${today.remaining_minutes}分钟`;
+  }
+  setBar("todayBar",today.completion_pct);
+
+  document.getElementById("weekValue").textContent=
+    `${oneDecimal(week.actual_hours)} / ${week.target_hours}小时`;
+  document.getElementById("weekNote").textContent=
+    `${week.label} · 尚需 ${oneDecimal(week.remaining_hours)}小时`;
+  setBar("weekBar",week.completion_pct);
+
+  document.getElementById("overallValue").textContent=
+    `${oneDecimal(overall.actual_hours)} / ${overall.plan_total_hours}小时`;
+  document.getElementById("overallNote").textContent=
+    `已通过 ${overall.passed_chapters} / ${overall.total_chapters}章`;
+  setBar("overallBar",overall.completion_pct);
+
+  const visualProgress=clamp(Number(overall.completion_pct||0),0,100);
+  document.documentElement.style.setProperty("--progress",visualProgress+"%");
+
+  if(chapter){
+    document.getElementById("chapterTitle").textContent=chapter.title||"当前学习章节";
+    document.getElementById("chapterUnit").textContent=
+      chapter.current_unit
+        ? `当前单元：${chapter.current_unit}`
+        : (chapter.next_action ? `下一动作：${chapter.next_action}` : "等待更新当前单元");
+    document.getElementById("chapterHours").textContent=
+      `${oneDecimal(chapter.actual_hours)} / ${oneDecimal(chapter.expected_hours)}h`;
+  }else{
+    document.getElementById("chapterTitle").textContent="当前没有标记为“学习中”的章节";
+    document.getElementById("chapterUnit").textContent="请在章节数据库中更新状态";
+    document.getElementById("chapterHours").textContent="—";
+  }
+
+  const gap=Number(overall.gap_hours||0);
+  document.getElementById("gapText").textContent=
+    `实际与计划差额：${gap>=0?"+":""}${oneDecimal(gap)}小时`;
+  document.getElementById("updated").textContent=
+    "自动同步于 "+new Date(data.generated_at).toLocaleString("zh-CN");
+}
+
+function showError(error){
+  document.querySelector(".shell").innerHTML=
+    `<div class="error">极地学习航标加载失败：${error.message}</div>`;
+}
+
+async function load(){
+  const response=await fetch("polar-progress-data.json?ts="+Date.now(),{
+    cache:"no-store"
+  });
+  if(!response.ok)throw new Error(`HTTP ${response.status}`);
+  render(await response.json());
+}
+
+load().catch(showError);
+setInterval(()=>load().catch(console.error),5*60*1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-07-30T03:55:00+00:00",
+  "timezone": "Asia/Shanghai",
+  "today": {
+    "date": "2026-07-30",
+    "actual_minutes": 0,
+    "target_minutes": 200,
+    "completion_pct": 0,
+    "status": "not_started",
+    "status_text": "等待首次同步",
+    "remaining_minutes": 200,
+    "surplus_minutes": 0
+  },
+  "week": {
+    "label": "7月29日—8月4日",
+    "start": "2026-07-29",
+    "end": "2026-08-04",
+    "actual_hours": 0,
+    "target_hours": 20,
+    "completion_pct": 0,
+    "remaining_hours": 20
+  },
+  "overall": {
+    "course_start": "2026-07-29",
+    "course_end": "2026-11-10",
+    "actual_hours": 0,
+    "planned_to_date_hours": 0,
+    "plan_total_hours": 326,
+    "completion_pct": 0,
+    "gap_hours": 0,
+    "passed_chapters": 0,
+    "total_chapters": 15
+  },
+  "current_chapter": null
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -66,56 +67,33 @@ WEEK_PLAN = [
 
 PHASES = [
     {
-        "id": 1,
-        "name": "基础语言与海洋结构",
-        "short": "基础",
-        "start_chapter": 1,
-        "end_chapter": 5,
-        "start": date(2026, 7, 29),
-        "end": date(2026, 8, 25),
+        "id": 1, "name": "基础语言与海洋结构", "short": "基础",
+        "start_chapter": 1, "end_chapter": 5,
+        "start": date(2026, 7, 29), "end": date(2026, 8, 25),
     },
     {
-        "id": 2,
-        "name": "旋转海洋与收支",
-        "short": "动力",
-        "start_chapter": 6,
-        "end_chapter": 9,
-        "start": date(2026, 8, 26),
-        "end": date(2026, 9, 22),
+        "id": 2, "name": "旋转海洋与收支", "short": "动力",
+        "start_chapter": 6, "end_chapter": 9,
+        "start": date(2026, 8, 26), "end": date(2026, 9, 22),
     },
     {
-        "id": 3,
-        "name": "极地过程与区域整合",
-        "short": "极地",
-        "start_chapter": 10,
-        "end_chapter": 13,
-        "start": date(2026, 9, 23),
-        "end": date(2026, 10, 20),
+        "id": 3, "name": "极地过程与区域整合", "short": "极地",
+        "start_chapter": 10, "end_chapter": 13,
+        "start": date(2026, 9, 23), "end": date(2026, 10, 20),
     },
     {
-        "id": 4,
-        "name": "气候动力与综合验收",
-        "short": "验收",
-        "start_chapter": 14,
-        "end_chapter": 15,
-        "start": date(2026, 10, 21),
-        "end": date(2026, 11, 10),
+        "id": 4, "name": "气候动力与综合验收", "short": "验收",
+        "start_chapter": 14, "end_chapter": 15,
+        "start": date(2026, 10, 21), "end": date(2026, 11, 10),
     },
 ]
 
-PASSED_STATUSES = {
-    "已通过",
-    "已掌握",
-    "完成",
-    "已完成",
-    "通过",
-}
-ACTIVE_STATUSES = {
-    "学习中",
-    "进行中",
-    "待验收",
-    "待复习",
-    "待修复",
+PASSED_STATUSES = {"已通过", "通过", "已掌握", "已完成", "完成"}
+ACTIVE_STATUSES = {"学习中", "进行中"}
+REVIEW_STATUSES = {"待验收", "待复测", "复测中"}
+REPAIR_STATUSES = {"待修复", "需修复", "局部修复"}
+KNOWN_STATUSES = PASSED_STATUSES | ACTIVE_STATUSES | REVIEW_STATUSES | REPAIR_STATUSES | {
+    "未开始", "暂停", "延后"
 }
 
 
@@ -134,7 +112,7 @@ def validate_environment() -> None:
     if missing:
         raise SystemExit(
             "缺少GitHub Secret：" + ", ".join(missing)
-            + "。请检查仓库Actions Secrets。"
+            + "。请检查Repository secrets。"
         )
 
 
@@ -169,8 +147,7 @@ def notion_request(
         if response.ok:
             return response.json()
 
-        retryable = response.status_code in {429, 500, 502, 503, 504}
-        if retryable and attempt < max_attempts:
+        if response.status_code in {429, 500, 502, 503, 504} and attempt < max_attempts:
             retry_after = response.headers.get("Retry-After")
             try:
                 delay = float(retry_after) if retry_after else 2 ** attempt
@@ -180,17 +157,14 @@ def notion_request(
             continue
 
         detail = response.text[:1200]
-        if response.status_code == 401:
-            hint = "请检查NOTION_TOKEN。"
-        elif response.status_code == 403:
-            hint = "内部连接缺少Read content权限。"
-        elif response.status_code == 404:
-            hint = "请确认01和02数据库均已连接到同一个Notion内部连接。"
-        else:
-            hint = "请查看GitHub Actions日志。"
-
+        hints = {
+            401: "请检查NOTION_TOKEN。",
+            403: "内部连接缺少Read content权限。",
+            404: "请确认01和02数据库都连接到同一个Notion内部连接，并检查Data Source ID。",
+        }
         raise NotionError(
-            f"Notion API请求失败：HTTP {response.status_code}。{hint}\n{detail}"
+            f"Notion API请求失败：HTTP {response.status_code}。"
+            f"{hints.get(response.status_code, '请查看Actions日志。')}\n{detail}"
         )
 
     raise NotionError("Notion API请求失败，达到最大重试次数。")
@@ -220,7 +194,6 @@ def query_data_source(
             payload=payload,
         )
         results.extend(data.get("results", []))
-
         if not data.get("has_more"):
             break
         cursor = data.get("next_cursor")
@@ -228,6 +201,77 @@ def query_data_source(
             break
 
     return results
+
+
+def rich_text_to_plain(items: list[dict[str, Any]] | None) -> str:
+    if not items:
+        return ""
+    return "".join(str(item.get("plain_text", "")) for item in items).strip()
+
+
+def parse_date(prop: dict[str, Any]) -> date | None:
+    obj = prop.get("date")
+    start = obj.get("start") if obj else None
+    if not start:
+        return None
+    try:
+        return date.fromisoformat(str(start)[:10])
+    except ValueError:
+        return None
+
+
+def parse_number(prop: dict[str, Any]) -> float:
+    prop_type = prop.get("type")
+    if prop_type == "number":
+        value = prop.get("number")
+    elif prop_type == "formula":
+        value = (prop.get("formula") or {}).get("number")
+    elif prop_type == "rollup":
+        value = (prop.get("rollup") or {}).get("number")
+    else:
+        value = prop.get("number")
+
+    try:
+        return 0.0 if value is None else float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def parse_text(prop: dict[str, Any]) -> str:
+    t = prop.get("type")
+    if t == "title":
+        return rich_text_to_plain(prop.get("title"))
+    if t == "rich_text":
+        return rich_text_to_plain(prop.get("rich_text"))
+    if t == "select":
+        obj = prop.get("select")
+        return str(obj.get("name", "")).strip() if obj else ""
+    if t == "status":
+        obj = prop.get("status")
+        return str(obj.get("name", "")).strip() if obj else ""
+    if t == "formula":
+        obj = prop.get("formula") or {}
+        if obj.get("type") == "string":
+            return str(obj.get("string") or "").strip()
+    return ""
+
+
+def chapter_number(value: float) -> int:
+    try:
+        return int(round(float(value)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def normalize_title(number: int, title: str) -> str:
+    title = re.sub(r"\s+", " ", (title or "").strip())
+    title = re.sub(rf"^第\s*{number}\s*章\s*[｜|:：\-—]*\s*", "", title)
+    return f"第{number}章｜{title}" if title else f"第{number}章"
+
+
+def short_title(number: int, title: str) -> str:
+    full = normalize_title(number, title)
+    return full.split("｜", 1)[-1]
 
 
 def query_learning_records() -> list[dict[str, Any]]:
@@ -248,70 +292,6 @@ def query_chapters() -> list[dict[str, Any]]:
     )
 
 
-def rich_text_to_plain(items: list[dict[str, Any]] | None) -> str:
-    if not items:
-        return ""
-    return "".join(str(item.get("plain_text", "")) for item in items).strip()
-
-
-def parse_date(prop: dict[str, Any]) -> date | None:
-    date_obj = prop.get("date")
-    if not date_obj:
-        return None
-    start = date_obj.get("start")
-    if not start:
-        return None
-    try:
-        return date.fromisoformat(str(start)[:10])
-    except ValueError:
-        return None
-
-
-def parse_number(prop: dict[str, Any]) -> float:
-    prop_type = prop.get("type")
-    if prop_type == "number":
-        value = prop.get("number")
-    elif prop_type == "formula":
-        value = (prop.get("formula") or {}).get("number")
-    elif prop_type == "rollup":
-        value = (prop.get("rollup") or {}).get("number")
-    else:
-        value = prop.get("number")
-
-    if value is None:
-        return 0.0
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return 0.0
-
-
-def parse_text(prop: dict[str, Any]) -> str:
-    prop_type = prop.get("type")
-    if prop_type == "title":
-        return rich_text_to_plain(prop.get("title"))
-    if prop_type == "rich_text":
-        return rich_text_to_plain(prop.get("rich_text"))
-    if prop_type == "select":
-        selected = prop.get("select")
-        return str(selected.get("name", "")).strip() if selected else ""
-    if prop_type == "status":
-        selected = prop.get("status")
-        return str(selected.get("name", "")).strip() if selected else ""
-    if prop_type == "formula":
-        formula = prop.get("formula") or {}
-        if formula.get("type") == "string":
-            return str(formula.get("string") or "").strip()
-    return ""
-
-
-def chapter_number(raw: float) -> int:
-    try:
-        return int(round(float(raw)))
-    except (TypeError, ValueError):
-        return 0
-
-
 def aggregate_daily(records: list[dict[str, Any]]) -> dict[date, dict[str, int]]:
     by_day: dict[date, dict[str, int]] = defaultdict(
         lambda: {"minutes": 0, "record_count": 0}
@@ -326,51 +306,94 @@ def aggregate_daily(records: list[dict[str, Any]]) -> dict[date, dict[str, int]]
     return by_day
 
 
-def parse_chapters(chapter_pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def parse_chapters(pages: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     chapters = []
-    for page in chapter_pages:
+    unknown_statuses = set()
+    missing_expected_hours = []
+
+    for page in pages:
         props = page.get("properties", {})
-        status = parse_text(props.get(CHAPTER_STATUS_PROPERTY, {}))
-        actual = round(
-            parse_number(props.get(CHAPTER_ACTUAL_HOURS_PROPERTY, {})), 2
-        )
-        expected = round(
-            parse_number(props.get(CHAPTER_EXPECTED_HOURS_PROPERTY, {})), 2
-        )
-        if status in PASSED_STATUSES:
-            progress = 100.0
+        number = chapter_number(parse_number(props.get(CHAPTER_NUMBER_PROPERTY, {})))
+        raw_title = parse_text(props.get(CHAPTER_TITLE_PROPERTY, {}))
+        status = parse_text(props.get(CHAPTER_STATUS_PROPERTY, {})) or "未开始"
+        actual = round(parse_number(props.get(CHAPTER_ACTUAL_HOURS_PROPERTY, {})), 2)
+        expected = round(parse_number(props.get(CHAPTER_EXPECTED_HOURS_PROPERTY, {})), 2)
+
+        if status not in KNOWN_STATUSES:
+            unknown_statuses.add(status)
+
+        passed = status in PASSED_STATUSES
+        active = status in ACTIVE_STATUSES
+        review = status in REVIEW_STATUSES
+        repair = status in REPAIR_STATUSES
+
+        if expected <= 0 and not passed:
+            missing_expected_hours.append(number)
+
+        if passed:
+            time_progress = 100.0
         elif expected > 0:
-            progress = min(99.0, round(actual / expected * 100, 1))
+            time_progress = min(99.0, round(actual / expected * 100, 1))
         else:
-            progress = 0.0
+            time_progress = 0.0
 
         chapters.append(
             {
-                "number": chapter_number(
-                    parse_number(props.get(CHAPTER_NUMBER_PROPERTY, {}))
-                ),
-                "title": parse_text(props.get(CHAPTER_TITLE_PROPERTY, {})),
-                "status": status or "未开始",
-                "current_unit": parse_text(
-                    props.get(CURRENT_UNIT_PROPERTY, {})
-                ),
-                "next_action": parse_text(
-                    props.get(NEXT_ACTION_PROPERTY, {})
-                ),
+                "number": number,
+                "title": normalize_title(number, raw_title),
+                "short_title": short_title(number, raw_title),
+                "status": status,
+                "current_unit": parse_text(props.get(CURRENT_UNIT_PROPERTY, {})),
+                "next_action": parse_text(props.get(NEXT_ACTION_PROPERTY, {})),
                 "actual_hours": actual,
                 "expected_hours": expected,
-                "progress_pct": progress,
+                "time_progress_pct": time_progress,
+                "passed": passed,
+                "active": active,
+                "review": review,
+                "repair": repair,
                 "url": page.get("url", ""),
-                "passed": status in PASSED_STATUSES,
-                "active": status in ACTIVE_STATUSES,
             }
         )
-    return sorted(chapters, key=lambda item: item["number"])
+
+    chapters = sorted(chapters, key=lambda item: item["number"])
+    diagnostics = {
+        "active_chapter_count": sum(1 for c in chapters if c["active"]),
+        "unknown_statuses": sorted(unknown_statuses),
+        "missing_expected_hours": sorted(n for n in missing_expected_hours if n > 0),
+    }
+    return chapters, diagnostics
 
 
-def current_week(local_today: date) -> dict[str, Any]:
+def intensity(minutes: int) -> int:
+    if minutes <= 0:
+        return 0
+    if minutes < 45:
+        return 1
+    if minutes < 90:
+        return 2
+    if minutes < 150:
+        return 3
+    if minutes < 210:
+        return 4
+    if minutes < 270:
+        return 5
+    return 6
+
+
+def format_date_range(start: date, end: date) -> str:
+    if start.month == end.month:
+        return f"{start.month}月{start.day}日—{end.day}日"
+    return f"{start.month}月{start.day}日—{end.month}月{end.day}日"
+
+
+def compact_date_range(start: date, end: date) -> str:
+    return f"{start.month}.{start.day}–{end.month}.{end.day}"
+
+
+def current_week(today: date) -> dict[str, Any]:
     for internal_id, start, end, target in WEEK_PLAN:
-        if start <= local_today <= end:
+        if start <= today <= end:
             return {
                 "internal_id": internal_id,
                 "start": start,
@@ -378,7 +401,7 @@ def current_week(local_today: date) -> dict[str, Any]:
                 "target_hours": target,
             }
     internal_id, start, end, target = (
-        WEEK_PLAN[0] if local_today < COURSE_START else WEEK_PLAN[-1]
+        WEEK_PLAN[0] if today < COURSE_START else WEEK_PLAN[-1]
     )
     return {
         "internal_id": internal_id,
@@ -401,8 +424,8 @@ def planned_hours_on(day: date) -> float:
         if day < start:
             break
         total_days = (end - start).days + 1
-        elapsed_days = (day - start).days + 1
-        total += target * elapsed_days / total_days
+        elapsed = (day - start).days + 1
+        total += target * elapsed / total_days
         break
     return round(total, 2)
 
@@ -414,261 +437,224 @@ def phase_for_chapter(number: int) -> dict[str, Any]:
     return PHASES[0] if number <= 0 else PHASES[-1]
 
 
-def format_date_range(start: date, end: date) -> str:
-    if start.month == end.month:
-        return f"{start.month}月{start.day}日—{end.day}日"
-    return f"{start.month}月{start.day}日—{end.month}月{end.day}日"
-
-
-
-def intensity(minutes: int) -> int:
-    if minutes <= 0:
-        return 0
-    if minutes < 45:
-        return 1
-    if minutes < 90:
-        return 2
-    if minutes < 150:
-        return 3
-    if minutes < 210:
-        return 4
-    if minutes < 270:
-        return 5
-    return 6
+def choose_current_chapter(chapters: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for predicate in (
+        lambda c: c["active"],
+        lambda c: c["review"],
+        lambda c: c["repair"],
+        lambda c: not c["passed"],
+    ):
+        found = next((c for c in chapters if predicate(c)), None)
+        if found:
+            return found
+    return chapters[-1] if chapters else None
 
 
 def heatmap_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
-    days = []
-    for day in sorted(by_day):
-        minutes = by_day[day]["minutes"]
-        days.append(
-            {
-                "date": day.isoformat(),
-                "minutes": minutes,
-                "record_count": by_day[day]["record_count"],
-                "level": intensity(minutes),
-            }
-        )
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "weekly_target_hours": 20,
-        "days": days,
+        "days": [
+            {
+                "date": day.isoformat(),
+                "minutes": values["minutes"],
+                "record_count": values["record_count"],
+                "level": intensity(values["minutes"]),
+            }
+            for day, values in sorted(by_day.items())
+        ],
     }
 
 
-def compact_range(start: date, end: date) -> str:
-    return f"{start.month}.{start.day}–{end.month}.{end.day}"
-
-
 def weekly_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
-    local_today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
     weeks = []
-    total_actual = 0.0
-    current = None
     for internal_id, start, end, target in WEEK_PLAN:
-        actual_minutes = sum(
-            values["minutes"]
-            for day, values in by_day.items()
-            if start <= day <= end
+        minutes = sum(
+            v["minutes"] for d, v in by_day.items() if start <= d <= end
         )
-        actual_hours = round(actual_minutes / 60, 2)
-        total_actual += actual_hours
-        item = {
-            "internal_id": internal_id,
-            "label": compact_range(start, end),
-            "date_label": format_date_range(start, end),
-            "start": start.isoformat(),
-            "end": end.isoformat(),
-            "target_hours": target,
-            "actual_hours": actual_hours,
-            "completion_pct": round(actual_hours / target * 100, 1) if target else 0,
-        }
-        weeks.append(item)
-        if start <= local_today <= end:
-            current = item
+        actual = round(minutes / 60, 2)
+        weeks.append(
+            {
+                "internal_id": internal_id,
+                "label": compact_date_range(start, end),
+                "date_label": format_date_range(start, end),
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "target_hours": target,
+                "actual_hours": actual,
+                "completion_pct": round(actual / target * 100, 1) if target else 0,
+            }
+        )
+
+    today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
+    current = next(
+        (
+            w for w in weeks
+            if date.fromisoformat(w["start"]) <= today <= date.fromisoformat(w["end"])
+        ),
+        None,
+    )
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "redline_hours": 18,
         "minimum_hours": 20,
         "standard_hours": 22,
         "sprint_hours": 24,
-        "total_actual_hours": round(total_actual, 2),
+        "total_actual_hours": round(sum(w["actual_hours"] for w in weeks), 2),
         "current_week": current,
         "weeks": weeks,
     }
 
 
-def cumulative_progress_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
-    local_today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
-    display_end = min(max(local_today, COURSE_START), COURSE_END)
+def progress_payload(by_day: dict[date, dict[str, int]]) -> dict[str, Any]:
+    today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
+    display_end = min(max(today, COURSE_START), COURSE_END)
 
     actual_points = []
-    cumulative_actual = 0.0
+    cumulative = 0.0
     day = COURSE_START
     while day <= display_end:
-        cumulative_actual += by_day.get(day, {}).get("minutes", 0) / 60
-        actual_points.append({"date": day.isoformat(), "hours": round(cumulative_actual, 2)})
+        cumulative += by_day.get(day, {}).get("minutes", 0) / 60
+        actual_points.append({"date": day.isoformat(), "hours": round(cumulative, 2)})
         day += timedelta(days=1)
 
     planned_points = [{"date": COURSE_START.isoformat(), "hours": 0.0}]
-    cumulative_plan = 0.0
+    plan_total = 0.0
     for _, _, end, target in WEEK_PLAN:
-        cumulative_plan += target
-        planned_points.append({"date": end.isoformat(), "hours": round(cumulative_plan, 2)})
+        plan_total += target
+        planned_points.append({"date": end.isoformat(), "hours": round(plan_total, 2)})
 
     planned_to_date = planned_hours_on(display_end)
-    total_plan = sum(item[3] for item in WEEK_PLAN)
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "course_start": COURSE_START.isoformat(),
         "course_end": COURSE_END.isoformat(),
         "today": display_end.isoformat(),
-        "plan_total_hours": total_plan,
-        "actual_total_hours": round(cumulative_actual, 2),
+        "plan_total_hours": int(plan_total),
+        "actual_total_hours": round(cumulative, 2),
         "planned_to_date_hours": planned_to_date,
-        "gap_hours": round(cumulative_actual - planned_to_date, 2),
-        "completion_pct": round(cumulative_actual / total_plan * 100, 1) if total_plan else 0,
+        "gap_hours": round(cumulative - planned_to_date, 2),
+        "completion_pct": round(cumulative / plan_total * 100, 1),
         "actual_points": actual_points,
         "planned_points": planned_points,
     }
 
 
-def global_payload(
+def beacon_payload(
     by_day: dict[date, dict[str, int]],
     chapters: list[dict[str, Any]],
+    diagnostics: dict[str, Any],
 ) -> dict[str, Any]:
-    local_today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
-    week = current_week(local_today)
-    today_minutes = by_day.get(local_today, {}).get("minutes", 0)
-    today_records = by_day.get(local_today, {}).get("record_count", 0)
+    today = datetime.now(ZoneInfo(TIMEZONE_NAME)).date()
+    week = current_week(today)
+    current = choose_current_chapter(chapters)
 
+    today_data = by_day.get(today, {"minutes": 0, "record_count": 0})
     week_minutes = sum(
-        values["minutes"]
-        for day, values in by_day.items()
-        if week["start"] <= day <= week["end"]
+        v["minutes"] for d, v in by_day.items()
+        if week["start"] <= d <= week["end"]
     )
     week_hours = round(week_minutes / 60, 2)
-    total_hours = round(
-        sum(values["minutes"] for values in by_day.values()) / 60,
-        2,
-    )
-    total_plan = sum(item[3] for item in WEEK_PLAN)
+    total_hours = round(sum(v["minutes"] for v in by_day.values()) / 60, 2)
+    total_plan = int(sum(w[3] for w in WEEK_PLAN))
+    planned_to_date = planned_hours_on(today)
     overall_pct = round(total_hours / total_plan * 100, 1)
-    planned_to_date = planned_hours_on(local_today)
-    gap = round(total_hours - planned_to_date, 2)
-    passed = sum(1 for item in chapters if item["passed"])
+    passed = sum(1 for c in chapters if c["passed"])
 
-    phase_items = []
+    current_phase = phase_for_chapter(current["number"] if current else 1)
+    phases = []
     for phase in PHASES:
-        phase_chapters = [
-            item for item in chapters
-            if phase["start_chapter"] <= item["number"] <= phase["end_chapter"]
+        items = [
+            c for c in chapters
+            if phase["start_chapter"] <= c["number"] <= phase["end_chapter"]
         ]
-        completed = sum(1 for item in phase_chapters if item["passed"])
-        phase_items.append(
+        completed = sum(1 for c in items if c["passed"])
+        phases.append(
             {
                 "id": phase["id"],
                 "name": phase["name"],
                 "short": phase["short"],
-                "start": phase["start"].isoformat(),
-                "end": phase["end"].isoformat(),
+                "start_chapter": phase["start_chapter"],
+                "end_chapter": phase["end_chapter"],
                 "completed_chapters": completed,
-                "total_chapters": len(phase_chapters),
-                "complete": bool(phase_chapters) and completed == len(phase_chapters),
+                "total_chapters": len(items),
+                "complete": bool(items) and completed == len(items),
             }
         )
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "today": {
-            "date": local_today.isoformat(),
-            "minutes": today_minutes,
-            "record_count": today_records,
-            "has_learning": today_minutes > 0,
+            "date": today.isoformat(),
+            "minutes": today_data["minutes"],
+            "record_count": today_data["record_count"],
+            "has_learning": today_data["minutes"] > 0,
         },
         "week": {
             "label": format_date_range(week["start"], week["end"]),
             "actual_hours": week_hours,
             "target_hours": week["target_hours"],
-            "completion_pct": round(
-                week_hours / week["target_hours"] * 100, 1
-            ),
-            "remaining_hours": round(
-                max(0, week["target_hours"] - week_hours), 2
-            ),
+            "completion_pct": round(week_hours / week["target_hours"] * 100, 1),
+            "remaining_hours": round(max(0, week["target_hours"] - week_hours), 2),
         },
         "overall": {
             "actual_hours": total_hours,
             "plan_total_hours": total_plan,
             "completion_pct": overall_pct,
+            "visual_progress_pct": max(1.5, overall_pct) if overall_pct > 0 else 0,
             "planned_to_date_hours": planned_to_date,
-            "gap_hours": gap,
+            "gap_hours": round(total_hours - planned_to_date, 2),
             "passed_chapters": passed,
             "total_chapters": len(chapters),
         },
-        "phases": phase_items,
+        "context": current,
+        "current_phase": {
+            "id": current_phase["id"],
+            "name": current_phase["name"],
+            "short": current_phase["short"],
+            "milestone": (
+                f"完成第{current_phase['start_chapter']}—"
+                f"{current_phase['end_chapter']}章"
+            ),
+        },
+        "phases": phases,
+        "diagnostics": diagnostics,
     }
 
 
-def phase_payload(chapters: list[dict[str, Any]]) -> dict[str, Any]:
-    active = next((item for item in chapters if item["active"]), None)
-    if active is None:
-        active = next((item for item in chapters if not item["passed"]), None)
-    if active is None and chapters:
-        active = chapters[-1]
-
-    active_number = active["number"] if active else 1
-    phase = phase_for_chapter(active_number)
+def phase_voyage_payload(
+    chapters: list[dict[str, Any]],
+    diagnostics: dict[str, Any],
+) -> dict[str, Any]:
+    current = choose_current_chapter(chapters)
+    current_number = current["number"] if current else 1
+    phase = phase_for_chapter(current_number)
     phase_chapters = [
-        item for item in chapters
-        if phase["start_chapter"] <= item["number"] <= phase["end_chapter"]
+        c for c in chapters
+        if phase["start_chapter"] <= c["number"] <= phase["end_chapter"]
     ]
 
-    if not phase_chapters:
-        phase_chapters = [
-            {
-                "number": n,
-                "title": f"第{n}章",
-                "status": "未开始",
-                "current_unit": "",
-                "next_action": "",
-                "actual_hours": 0,
-                "expected_hours": 0,
-                "progress_pct": 0,
-                "url": "",
-                "passed": False,
-                "active": n == active_number,
-            }
-            for n in range(phase["start_chapter"], phase["end_chapter"] + 1)
-        ]
-
-    completed = sum(1 for item in phase_chapters if item["passed"])
+    completed = sum(1 for c in phase_chapters if c["passed"])
     total = len(phase_chapters)
 
     active_index = 0
-    active_progress = 0.0
-    for idx, item in enumerate(phase_chapters):
-        if item["number"] == active_number:
-            active_index = idx
-            active_progress = item["progress_pct"]
-            break
+    active_fraction = 0.0
+    if current:
+        for idx, item in enumerate(phase_chapters):
+            if item["number"] == current["number"]:
+                active_index = idx
+                active_fraction = item["time_progress_pct"] / 100
+                break
+    if total:
+        route_progress = (
+            100.0 if completed >= total
+            else round((active_index + active_fraction) / total * 100, 1)
+        )
     else:
-        if completed >= total:
-            active_index = total
-            active_progress = 100.0
-        else:
-            active_index = min(completed, max(0, total - 1))
-
-    route_progress = (
-        100.0 if completed >= total
-        else round((active_index + active_progress / 100) / total * 100, 1)
-    )
+        route_progress = 0.0
 
     next_chapter = next(
-        (
-            item for item in phase_chapters
-            if item["number"] > active_number and not item["passed"]
-        ),
+        (c for c in phase_chapters if current and c["number"] > current["number"] and not c["passed"]),
         None,
     )
 
@@ -681,21 +667,22 @@ def phase_payload(chapters: list[dict[str, Any]]) -> dict[str, Any]:
             "start_chapter": phase["start_chapter"],
             "end_chapter": phase["end_chapter"],
             "date_label": format_date_range(phase["start"], phase["end"]),
-            "completed_chapters": completed,
+            "passed_chapters": completed,
             "total_chapters": total,
-            "completion_pct": round(completed / total * 100, 1) if total else 0,
+            "acceptance_pct": round(completed / total * 100, 1) if total else 0,
             "route_progress_pct": route_progress,
-            "complete": completed >= total and total > 0,
+            "complete": bool(total) and completed == total,
         },
-        "current_chapter": active,
+        "current_chapter": current,
         "next_chapter": next_chapter,
         "chapters": phase_chapters,
+        "diagnostics": diagnostics,
     }
 
 
-def write_json(filename: str, payload: dict[str, Any]) -> None:
-    (PUBLIC_DIR / filename).write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2),
+def write_json(name: str, data: dict[str, Any]) -> None:
+    (PUBLIC_DIR / name).write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
@@ -703,26 +690,34 @@ def write_json(filename: str, payload: dict[str, Any]) -> None:
 def main() -> None:
     validate_environment()
     records = query_learning_records()
-    chapter_pages = query_chapters()
+    pages = query_chapters()
     by_day = aggregate_daily(records)
-    chapters = parse_chapters(chapter_pages)
+    chapters, diagnostics = parse_chapters(pages)
 
     write_json("data.json", heatmap_payload(by_day))
     write_json("weekly-data.json", weekly_payload(by_day))
-    write_json("progress-data.json", cumulative_progress_payload(by_day))
-    write_json("polar-progress-data.json", global_payload(by_day, chapters))
-    write_json("phase-voyage-data.json", phase_payload(chapters))
+    write_json("progress-data.json", progress_payload(by_day))
+    write_json("polar-progress-data.json", beacon_payload(by_day, chapters, diagnostics))
+    write_json("phase-voyage-data.json", phase_voyage_payload(chapters, diagnostics))
     (PUBLIC_DIR / ".nojekyll").write_text("", encoding="utf-8")
 
-    # Existing data files are left to the current builder if present.
     print(
-        f"航标数据构建完成：{len(records)}条正式记录，"
+        f"统一构建完成：{len(records)}条正式记录，"
         f"{len(chapters)}章，{len(by_day)}个学习日。"
     )
     print(
         "已生成：data.json、weekly-data.json、progress-data.json、"
         "polar-progress-data.json、phase-voyage-data.json"
     )
+    if diagnostics["active_chapter_count"] != 1:
+        print(
+            "诊断提示：学习中章节数量为"
+            f"{diagnostics['active_chapter_count']}，建议保持恰好1章。"
+        )
+    if diagnostics["unknown_statuses"]:
+        print("诊断提示：未知章节状态：", diagnostics["unknown_statuses"])
+    if diagnostics["missing_expected_hours"]:
+        print("诊断提示：缺少预计小时的章节：", diagnostics["missing_expected_hours"])
 
 
 if __name__ == "__main__":

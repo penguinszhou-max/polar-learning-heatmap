@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-07-30T05:45:00+00:00",
+  "redline_hours": 18,
+  "minimum_hours": 20,
+  "standard_hours": 22,
+  "sprint_hours": 24,
+  "total_actual_hours": 2,
+  "current_week": {
+    "label": "7.29–8.4",
+    "date_label": "7月29日—8月4日",
+    "start": "2026-07-29",
+    "end": "2026-08-04",
+    "target_hours": 20,
+    "actual_hours": 2,
+    "completion_pct": 10
+  },
+  "weeks": []
+}

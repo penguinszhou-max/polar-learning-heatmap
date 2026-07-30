@@ -1,5 +1,6 @@
 {
-  "generated_at": "2026-07-30T05:30:00+00:00",
+  "schema_version": 3,
+  "generated_at": "2026-07-30T06:10:00+00:00",
   "phase": {
     "id": 1,
     "name": "基础语言与海洋结构",
@@ -7,80 +8,131 @@
     "start_chapter": 1,
     "end_chapter": 5,
     "date_label": "7月29日—8月25日",
+    "passed_chapters": 0,
     "completed_chapters": 0,
     "total_chapters": 5,
+    "acceptance_pct": 0,
     "completion_pct": 0,
     "route_progress_pct": 10,
     "complete": false
   },
   "current_chapter": {
     "number": 1,
-    "title": "海洋是一个怎样的物理系统",
+    "title": "第1章｜海洋是一个怎样的物理系统",
     "status": "学习中",
     "current_unit": "已完成1.1—1.4；下一单元1.5",
     "next_action": "进入1.5",
     "actual_hours": 2,
     "expected_hours": 4,
+    "time_progress_pct": 50,
     "progress_pct": 50,
     "passed": false,
-    "active": true
+    "active": true,
+    "review": false,
+    "repair": false,
+    "url": ""
   },
   "next_chapter": {
     "number": 2,
-    "title": "海水状态方程与热力学",
+    "title": "第2章｜待开始章节",
     "status": "未开始",
-    "progress_pct": 0
+    "current_unit": "",
+    "next_action": "",
+    "actual_hours": 0,
+    "expected_hours": 10,
+    "time_progress_pct": 0,
+    "progress_pct": 0,
+    "passed": false,
+    "active": false,
+    "review": false,
+    "repair": false,
+    "url": ""
   },
   "chapters": [
     {
       "number": 1,
-      "title": "海洋是一个怎样的物理系统",
+      "title": "第1章｜海洋是一个怎样的物理系统",
       "status": "学习中",
+      "current_unit": "已完成1.1—1.4；下一单元1.5",
+      "next_action": "进入1.5",
       "actual_hours": 2,
       "expected_hours": 4,
+      "time_progress_pct": 50,
       "progress_pct": 50,
       "passed": false,
-      "active": true
+      "active": true,
+      "review": false,
+      "repair": false,
+      "url": ""
     },
     {
       "number": 2,
-      "title": "海水状态方程与热力学",
+      "title": "第2章｜待开始章节",
       "status": "未开始",
+      "current_unit": "",
+      "next_action": "",
       "actual_hours": 0,
-      "expected_hours": 0,
+      "expected_hours": 10,
+      "time_progress_pct": 0,
       "progress_pct": 0,
       "passed": false,
-      "active": false
+      "active": false,
+      "review": false,
+      "repair": false,
+      "url": ""
     },
     {
       "number": 3,
-      "title": "海洋分层与稳定性",
+      "title": "第3章｜待开始章节",
       "status": "未开始",
+      "current_unit": "",
+      "next_action": "",
       "actual_hours": 0,
-      "expected_hours": 0,
+      "expected_hours": 10,
+      "time_progress_pct": 0,
       "progress_pct": 0,
       "passed": false,
-      "active": false
+      "active": false,
+      "review": false,
+      "repair": false,
+      "url": ""
     },
     {
       "number": 4,
-      "title": "水团与海洋结构",
+      "title": "第4章｜待开始章节",
       "status": "未开始",
+      "current_unit": "",
+      "next_action": "",
       "actual_hours": 0,
-      "expected_hours": 0,
+      "expected_hours": 10,
+      "time_progress_pct": 0,
       "progress_pct": 0,
       "passed": false,
-      "active": false
+      "active": false,
+      "review": false,
+      "repair": false,
+      "url": ""
     },
     {
       "number": 5,
-      "title": "基础阶段整合",
+      "title": "第5章｜待开始章节",
       "status": "未开始",
+      "current_unit": "",
+      "next_action": "",
       "actual_hours": 0,
-      "expected_hours": 0,
+      "expected_hours": 10,
+      "time_progress_pct": 0,
       "progress_pct": 0,
       "passed": false,
-      "active": false
+      "active": false,
+      "review": false,
+      "repair": false,
+      "url": ""
     }
-  ]
+  ],
+  "diagnostics": {
+    "active_chapter_count": 1,
+    "unknown_statuses": [],
+    "missing_expected_hours": []
+  }
 }

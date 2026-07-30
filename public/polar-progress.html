@@ -3,166 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>极地学习航标</title>
 <style>
 :root{
-  --ink:#173452;--muted:#65788d;--line:rgba(50,101,151,.18);
-  --blue:#2f77bd;--blue-soft:#7eb3df;--panel:rgba(255,255,255,.86);
-  --progress:0%;
+  --ink:#123354;--muted:#60758b;--blue:#2f79bd;--blue2:#8fc1e3;
+  --line:rgba(48,105,157,.18);--panel:rgba(255,255,255,.92)
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:transparent;color:var(--ink)}
 body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
-.card{
-  position:relative;overflow:hidden;border-radius:16px;min-height:430px;
-  border:1px solid rgba(64,119,169,.20);
-  background:
-    linear-gradient(180deg,rgba(248,252,255,.90),rgba(238,247,253,.80)),
-    url("assets/polar-beacon-bg.webp") center/cover no-repeat;
-  box-shadow:0 8px 26px rgba(37,80,119,.10)
+.shell{
+  min-height:570px;border:1px solid rgba(43,105,159,.24);border-radius:18px;
+  background:#f7fbfe;overflow:hidden;box-shadow:0 10px 32px rgba(34,76,112,.11)
 }
-.card::before{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(255,255,255,.72) 0 48%,rgba(220,240,250,.12) 100%);
-  pointer-events:none
-}
-.inner{position:relative;z-index:1;padding:22px 24px 18px}
-.header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
-.title{font-size:22px;font-weight:760;letter-spacing:.03em}
-.subtitle{font-size:11px;color:var(--muted);margin-top:5px}
-.sync{font-size:10px;color:var(--muted);padding-top:5px;white-space:nowrap}
-.metrics{
-  margin-top:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-  border:1px solid var(--line);border-radius:13px;background:var(--panel);
-  backdrop-filter:blur(8px)
-}
-.metric{padding:16px 18px;min-height:108px;position:relative}
-.metric+.metric{border-left:1px solid var(--line)}
-.label{font-size:11px;color:var(--muted)}
-.value{font-size:23px;font-weight:760;margin-top:6px}
-.note{font-size:10px;color:var(--muted);margin-top:7px}
-.bar{height:5px;background:rgba(58,112,162,.13);border-radius:999px;overflow:hidden;margin-top:10px}
-.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--blue-soft));border-radius:999px;transition:width .8s ease}
-.route{
-  position:relative;margin-top:18px;height:190px;border-radius:13px;
-  border:1px solid var(--line);overflow:hidden;background:rgba(242,250,254,.40)
-}
-.route::before{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(255,255,255,.36),rgba(190,224,240,.08));
-}
-.path{
-  position:absolute;left:7%;right:7%;top:96px;height:2px;
-  border-top:2px dashed rgba(255,255,255,.95);
-  filter:drop-shadow(0 1px 1px rgba(32,79,117,.35))
-}
-.progress-line{
-  position:absolute;left:7%;top:96px;width:calc(var(--progress)*.86);
-  height:2px;background:var(--blue);transition:width .9s ease
-}
-.marker{
-  position:absolute;top:84px;transform:translateX(-50%);
-  text-align:center;width:120px
-}
-.dot{
-  margin:auto;width:15px;height:15px;border-radius:50%;background:#fff;
-  border:4px solid #78b2df;box-shadow:0 2px 8px rgba(28,80,122,.18)
-}
-.marker.done .dot{background:var(--blue);border-color:#d9edfa}
-.marker strong{display:block;font-size:12px;margin-top:11px}
-.marker small{font-size:9px;color:var(--muted)}
-.beacon{
-  position:absolute;top:55px;left:calc(7% + var(--progress)*.86);
-  transform:translateX(-50%);transition:left .9s ease;
-  width:42px;height:42px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.9);
-  background:rgba(255,255,255,.72);
-  box-shadow:0 5px 18px rgba(28,79,121,.25);
-  display:grid;place-items:center;animation:float 3.6s ease-in-out infinite
-}
-.beacon::before{
-  content:"";width:23px;height:23px;display:block;
-  background:linear-gradient(145deg,#eefaff,#9dd0ec);
-  clip-path:polygon(50% 0,61% 35%,100% 50%,63% 62%,50% 100%,38% 63%,0 50%,37% 36%)
-}
-.foot{display:flex;justify-content:space-between;gap:10px;font-size:9px;color:var(--muted);margin-top:9px}
-.error{padding:16px;background:#fff3f3;color:#8b3232;border-radius:10px}
-@keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
-@media(max-width:760px){
-  .card{min-height:600px}.inner{padding:16px}.metrics{grid-template-columns:1fr}
-  .metric+.metric{border-left:0;border-top:1px solid var(--line)}
-  .route{height:180px}.title{font-size:19px}.sync{display:none}
-}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.header{height:92px;padding:23px 28px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;background:linear-gradient(180deg,#fbfdff,#f4f9fc)}
+.brand{display:flex;align-items:center;gap:15px}.compass{width:57px;height:57px;filter:drop-shadow(0 5px 8px rgba(40,89,129,.13))}
+.title{font-size:29px;line-height:1.1;font-weight:800;letter-spacing:.03em}.subtitle{margin-top:8px;font-size:13px;color:var(--muted)}
+.sync{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);padding-top:7px;white-space:nowrap}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#39aa73;box-shadow:0 0 0 4px rgba(57,170,115,.10)}
+.pill{padding:7px 12px;border:1px solid var(--line);border-radius:9px;background:rgba(234,245,253,.85);font-size:12px;color:#2d69a0}
+.dashboard{margin:0 28px;display:grid;grid-template-columns:1fr 1fr 1fr 1.18fr;border:1px solid var(--line);border-radius:15px;background:var(--panel);overflow:hidden;box-shadow:0 6px 20px rgba(38,83,119,.06)}
+.metric{min-height:158px;padding:23px 22px;position:relative}.metric+.metric{border-left:1px solid var(--line)}
+.metric-head{display:flex;align-items:center;gap:12px}.icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#eff7fd,#dfeefa);color:#2f79bd;flex:0 0 auto}.icon svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.label{font-size:13px;color:#4f6880;font-weight:650}.value{font-size:29px;font-weight:800;margin-top:11px;letter-spacing:.01em}.note{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.55}
+.progress{height:7px;background:rgba(48,106,157,.14);border-radius:999px;overflow:hidden;margin-top:13px}.progress>span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#2f79bd,#88bde2);transition:width .8s ease}
+.context-label{font-size:13px;color:#4f6880;font-weight:650}.context-title{font-size:18px;font-weight:790;line-height:1.45;margin-top:10px}.context-line{font-size:12px;color:var(--muted);line-height:1.65;margin-top:7px}
+.scene{position:relative;margin-top:19px;height:246px;border-top:1px solid rgba(50,108,159,.12);border-bottom:1px solid rgba(50,108,159,.13);background:url("assets/beacon-bg.webp") center 59%/cover no-repeat;overflow:hidden}
+.scene::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(247,252,255,.58),rgba(226,243,251,.18) 54%,rgba(207,232,244,.18))}
+.scene svg{position:relative;z-index:1;width:100%;height:100%;display:block}.route-base{fill:none;stroke:rgba(255,255,255,.96);stroke-width:3;stroke-dasharray:8 8;filter:drop-shadow(0 1px 1px rgba(38,82,116,.33))}.route-done{fill:none;stroke:#2f79bd;stroke-width:4;stroke-linecap:round}.node-image{filter:saturate(.68) opacity(.79)}.node.complete .node-image{filter:saturate(1) opacity(1)}.node-label-bg{fill:rgba(255,255,255,.86);stroke:rgba(48,105,157,.18);stroke-width:1}.node-label{font-size:16px;font-weight:800;text-anchor:middle;fill:#143654}.node-sub{font-size:12px;text-anchor:middle;fill:#5d7489}.current-marker{filter:drop-shadow(0 7px 10px rgba(34,78,113,.23))}.marker-disc{fill:rgba(255,255,255,.94);stroke:rgba(47,121,189,.32);stroke-width:1.5}.marker-star{fill:url(#markerGrad)}
+.caption{position:absolute;z-index:2;bottom:10px;left:50%;transform:translateX(-50%);padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.80);border:1px solid rgba(48,105,157,.17);font-size:12px;color:#365d7c;white-space:nowrap}
+.diagnostics{margin:13px 28px 0;display:grid;grid-template-columns:1.15fr 1.15fr .85fr .85fr;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.94);overflow:hidden}
+.diag{min-height:72px;padding:14px 17px}.diag+.diag{border-left:1px solid var(--line)}.diag b{display:block;font-size:12px}.diag span{display:block;margin-top:7px;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.footer{padding:8px 29px 12px;display:flex;justify-content:space-between;gap:16px;font-size:10px;color:#6c7e8d}.error{margin:28px;padding:18px;border:1px solid #e8aaaa;border-radius:12px;background:#fff2f2;color:#923636;font-size:14px}
+@media(max-width:980px){.dashboard{grid-template-columns:1fr 1fr}.metric:nth-child(3){border-left:0;border-top:1px solid var(--line)}.metric:nth-child(4){border-top:1px solid var(--line)}.scene{overflow-x:auto}.scene svg{min-width:1100px}.diagnostics{grid-template-columns:1fr 1fr}.diag:nth-child(3){border-left:0;border-top:1px solid var(--line)}.diag:nth-child(4){border-top:1px solid var(--line)}}
+@media(max-width:620px){.header{height:auto;display:block}.sync{margin-top:12px}.dashboard{grid-template-columns:1fr}.metric+.metric{border-left:0;border-top:1px solid var(--line)}.diagnostics{grid-template-columns:1fr}.diag+.diag{border-left:0;border-top:1px solid var(--line)}.title{font-size:25px}.footer{display:block}.footer span{display:block;margin-top:4px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="inner" id="app">
-    <div class="header">
-      <div><div class="title">极地学习航标</div><div class="subtitle">今日记录 · 当前学习周 · 整体课程推进</div></div>
-      <div class="sync" id="sync">正在同步</div>
+<div class="shell" id="shell">
+  <header class="header">
+    <div class="brand">
+      <svg class="compass" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="#eef6fc" stroke="#bfd7ea"/><path d="M32 5l6 21 21 6-21 6-6 21-6-21-21-6 21-6z" fill="#2f79bd" opacity=".82"/><path d="M32 15l4 13 13 4-13 4-4 13-4-13-13-4 13-4z" fill="#fff"/><circle cx="32" cy="32" r="4" fill="#2f79bd"/></svg>
+      <div><div class="title">极地学习航标</div><div class="subtitle">今日记录 · 本周执行 · 整体课程推进</div></div>
     </div>
-    <div class="metrics">
-      <div class="metric">
-        <div class="label">今日正式学习</div>
-        <div class="value" id="today">—</div>
-        <div class="note" id="todayNote">读取正式学习记录</div>
-      </div>
-      <div class="metric">
-        <div class="label">当前学习周</div>
-        <div class="value" id="week">—</div>
-        <div class="note" id="weekNote">—</div>
-        <div class="bar"><span id="weekBar"></span></div>
-      </div>
-      <div class="metric">
-        <div class="label">整体课程推进</div>
-        <div class="value" id="overall">—</div>
-        <div class="note" id="overallNote">—</div>
-        <div class="bar"><span id="overallBar"></span></div>
-      </div>
-    </div>
-    <div class="route">
-      <div class="path"></div><div class="progress-line"></div>
-      <div class="beacon"></div>
-      <div class="marker" style="left:7%"><div class="dot"></div><strong>起点</strong><small>0%</small></div>
-      <div class="marker" data-phase="1" style="left:28.5%"><div class="dot"></div><strong>基础</strong><small>25%</small></div>
-      <div class="marker" data-phase="2" style="left:50%"><div class="dot"></div><strong>动力</strong><small>50%</small></div>
-      <div class="marker" data-phase="3" style="left:71.5%"><div class="dot"></div><strong>极地</strong><small>75%</small></div>
-      <div class="marker" data-phase="4" style="left:93%"><div class="dot"></div><strong>验收</strong><small>100%</small></div>
-    </div>
-    <div class="foot"><span id="gap">实际与计划差额：—</span><span id="updated">—</span></div>
-  </div>
+    <div class="sync"><span class="sync-dot"></span><span id="syncText">正在同步</span><span class="pill" id="todayPill">—</span></div>
+  </header>
+
+  <section class="dashboard">
+    <article class="metric"><div class="metric-head"><div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></div><div class="label">今日正式学习</div></div><div class="value" id="todayValue">—</div><div class="note" id="todayNote">读取正式学习记录</div></article>
+    <article class="metric"><div class="metric-head"><div class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 3v5M16 3v5M4 10h16"/></svg></div><div class="label">当前学习周</div></div><div class="value" id="weekValue">—</div><div class="note" id="weekNote">—</div><div class="progress"><span id="weekBar"></span></div></article>
+    <article class="metric"><div class="metric-head"><div class="icon"><svg viewBox="0 0 24 24"><path d="M5 19V12M12 19V8M19 19V4"/><path d="M4 19h16"/></svg></div><div class="label">整体课程推进</div></div><div class="value" id="overallValue">—</div><div class="note" id="overallNote">—</div><div class="progress"><span id="overallBar"></span></div></article>
+    <article class="metric"><div class="metric-head"><div class="icon"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5A2.5 2.5 0 0 1 20 21z"/></svg></div><div class="context-label">当前学习上下文</div></div><div class="context-title" id="contextTitle">正在读取当前章节</div><div class="context-line" id="contextUnit">—</div><div class="context-line" id="contextHours">—</div></article>
+  </section>
+
+  <section class="scene">
+    <svg id="routeMap" viewBox="0 0 1600 250" preserveAspectRatio="xMidYMid meet" aria-label="课程总航标">
+      <defs><linearGradient id="markerGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eefaff"/><stop offset="1" stop-color="#79b8df"/></linearGradient><path id="globalRoute" pathLength="100" d="M95 139 C290 104 430 165 610 130 S930 105 1110 143 S1380 156 1500 124"/></defs>
+      <path class="route-base" d="M95 139 C290 104 430 165 610 130 S930 105 1110 143 S1380 156 1500 124"/>
+      <path id="globalDone" class="route-done" pathLength="100" stroke-dasharray="0 100" d="M95 139 C290 104 430 165 610 130 S930 105 1110 143 S1380 156 1500 124"/>
+      <g class="node" data-phase="0" data-pct="0"><image class="node-image" href="assets/island-pending.webp" x="-58" y="-84" width="116" height="84"/><rect class="node-label-bg" x="-43" y="11" width="86" height="51" rx="10"/><text class="node-label" x="0" y="33">起点</text><text class="node-sub" x="0" y="53">0%</text></g>
+      <g class="node" data-phase="1" data-pct="25"><image class="node-image" href="assets/island-active.webp" x="-65" y="-91" width="130" height="92"/><rect class="node-label-bg" x="-43" y="11" width="86" height="51" rx="10"/><text class="node-label" x="0" y="33">基础</text><text class="node-sub" x="0" y="53">25%</text></g>
+      <g class="node" data-phase="2" data-pct="50"><image class="node-image" href="assets/island-pending.webp" x="-62" y="-88" width="124" height="89"/><rect class="node-label-bg" x="-43" y="11" width="86" height="51" rx="10"/><text class="node-label" x="0" y="33">动力</text><text class="node-sub" x="0" y="53">50%</text></g>
+      <g class="node" data-phase="3" data-pct="75"><image class="node-image" href="assets/island-pending.webp" x="-66" y="-93" width="132" height="94"/><rect class="node-label-bg" x="-43" y="11" width="86" height="51" rx="10"/><text class="node-label" x="0" y="33">极地</text><text class="node-sub" x="0" y="53">75%</text></g>
+      <g class="node" data-phase="4" data-pct="100"><image class="node-image" href="assets/island-goal.webp" x="-78" y="-105" width="156" height="106"/><rect class="node-label-bg" x="-46" y="11" width="92" height="51" rx="10"/><text class="node-label" x="0" y="33">验收</text><text class="node-sub" x="0" y="53">100%</text></g>
+      <g id="globalMarker" class="current-marker"><circle class="marker-disc" r="27"/><path class="marker-star" d="M0-18 5-5 18 0 5 5 0 18-5 5-18 0-5-5z"/></g>
+    </svg>
+    <div class="caption" id="sceneCaption">整体课程位置正在同步</div>
+  </section>
+
+  <section class="diagnostics"><div class="diag"><b>当前阶段</b><span id="phaseValue">—</span></div><div class="diag"><b>下一里程碑</b><span id="milestoneValue">—</span></div><div class="diag"><b>已通过章节</b><span id="passedValue">—</span></div><div class="diag"><b>实际与计划差额</b><span id="gapValue">—</span></div></section>
+  <footer class="footer"><span>总航标由整体累计小时决定；章节信息仅作为当前学习上下文。</span><span id="updatedText">—</span></footer>
 </div>
 <script>
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const f=v=>Number(v||0).toFixed(1);
-async function load(){
-  const r=await fetch("polar-progress-data.json?ts="+Date.now(),{cache:"no-store"});
-  if(!r.ok)throw new Error("HTTP "+r.status);
-  const d=await r.json();
-  document.getElementById("today").textContent=d.today.minutes+"分钟";
-  document.getElementById("todayNote").textContent=d.today.has_learning
-    ? `已形成 ${d.today.record_count} 条正式记录`
-    : "今日尚未记录正式学习";
-  document.getElementById("week").textContent=`${f(d.week.actual_hours)} / ${d.week.target_hours}小时`;
-  document.getElementById("weekNote").textContent=`${d.week.label} · 尚需 ${f(d.week.remaining_hours)}小时`;
-  document.getElementById("weekBar").style.width=clamp(d.week.completion_pct,0,100)+"%";
-  document.getElementById("overall").textContent=`${f(d.overall.actual_hours)} / ${d.overall.plan_total_hours}小时`;
-  document.getElementById("overallNote").textContent=`已通过 ${d.overall.passed_chapters} / ${d.overall.total_chapters}章`;
-  document.getElementById("overallBar").style.width=clamp(d.overall.completion_pct,0,100)+"%";
-  document.documentElement.style.setProperty("--progress",clamp(d.overall.completion_pct,0,100)+"%");
-  d.phases.forEach(p=>{
-    if(p.complete)document.querySelector(`[data-phase="${p.id}"]`)?.classList.add("done");
-  });
-  const gap=Number(d.overall.gap_hours||0);
-  document.getElementById("gap").textContent=`实际与计划差额：${gap>=0?"+":""}${f(gap)}小时`;
-  const t=new Date(d.generated_at).toLocaleString("zh-CN");
-  document.getElementById("sync").textContent="数据自动同步于 "+t;
-  document.getElementById("updated").textContent="最后更新 "+t;
+const $=id=>document.getElementById(id); const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,Number(v)||0)); const one=v=>Number(v||0).toFixed(1);
+function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}
+function arr(v){return Array.isArray(v)?v:[]}
+function text(v,fallback='—'){return v===null||v===undefined||String(v).trim()===''?fallback:String(v)}
+function derivePhase(number){const n=Number(number)||1;if(n<=5)return{id:1,name:'基础语言与海洋结构',short:'基础',milestone:'完成第1—5章'};if(n<=9)return{id:2,name:'旋转海洋与收支',short:'动力',milestone:'完成第6—9章'};if(n<=13)return{id:3,name:'极地过程与区域整合',short:'极地',milestone:'完成第10—13章'};return{id:4,name:'气候动力与综合验收',short:'验收',milestone:'完成第14—15章'}}
+function normalize(raw){
+  raw=obj(raw);const today=obj(raw.today),week=obj(raw.week),overall=obj(raw.overall);const context=obj(raw.context||raw.current_chapter);const phaseRaw=obj(raw.current_phase);const derived=derivePhase(context.number);
+  return{generated_at:raw.generated_at||new Date().toISOString(),today:{minutes:Number(today.minutes)||0,record_count:Number(today.record_count)||0,has_learning:Boolean(today.has_learning||(Number(today.minutes)>0))},week:{label:text(week.label,''),actual_hours:Number(week.actual_hours)||0,target_hours:Number(week.target_hours)||20,completion_pct:Number(week.completion_pct)||0,remaining_hours:Number(week.remaining_hours)||0},overall:{actual_hours:Number(overall.actual_hours)||0,plan_total_hours:Number(overall.plan_total_hours)||326,completion_pct:Number(overall.completion_pct)||0,visual_progress_pct:Number(overall.visual_progress_pct??overall.completion_pct)||0,gap_hours:Number(overall.gap_hours)||0,passed_chapters:Number(overall.passed_chapters)||0,total_chapters:Number(overall.total_chapters)||15},context:Object.keys(context).length?context:null,current_phase:{...derived,...phaseRaw,name:text(phaseRaw.name,derived.name),milestone:text(phaseRaw.milestone,derived.milestone)},phases:arr(raw.phases)}
 }
-load().catch(e=>document.getElementById("app").innerHTML=`<div class="error">加载失败：${e.message}</div>`);
+function pointOn(path,pct){const len=path.getTotalLength();return path.getPointAtLength(len*clamp(pct)/100)}
+function positionGlobalNodes(){const path=$('globalRoute');document.querySelectorAll('.node[data-pct]').forEach(n=>{const p=pointOn(path,Number(n.dataset.pct));n.setAttribute('transform',`translate(${p.x} ${p.y})`)})}function positionMarker(pct){const path=$('globalRoute'),p=pointOn(path,pct);$('globalMarker').setAttribute('transform',`translate(${p.x} ${p.y-7})`);$('globalDone').setAttribute('stroke-dasharray',`${clamp(pct)} ${100-clamp(pct)}`)}
+function render(raw){const d=normalize(raw);$('todayValue').textContent=d.today.minutes+'分钟';$('todayNote').textContent=d.today.has_learning?`已形成 ${d.today.record_count} 条正式记录`:'今日尚未产生正式学习记录';$('todayPill').textContent=d.today.has_learning?'今日已记录':'今日尚未记录';$('weekValue').textContent=`${one(d.week.actual_hours)} / ${d.week.target_hours}小时`;$('weekNote').textContent=`${d.week.label||'当前学习周'} · 尚需 ${one(d.week.remaining_hours)}小时`;$('weekBar').style.width=clamp(d.week.completion_pct)+'%';$('overallValue').textContent=`${one(d.overall.actual_hours)} / ${d.overall.plan_total_hours}小时`;$('overallNote').textContent=`总计划完成 ${one(d.overall.completion_pct)}% · 已通过 ${d.overall.passed_chapters}/${d.overall.total_chapters}章`;$('overallBar').style.width=clamp(d.overall.completion_pct)+'%';
+  if(d.context){$('contextTitle').textContent=text(d.context.title,'当前章节');$('contextUnit').textContent=d.context.current_unit?`当前单元：${d.context.current_unit}`:(d.context.next_action?`下一动作：${d.context.next_action}`:'当前单元待更新');$('contextHours').textContent=`章节投入：${one(d.context.actual_hours)} / ${one(d.context.expected_hours)}小时`}else{$('contextTitle').textContent='当前章节待同步';$('contextUnit').textContent='页面仍可继续显示总进度';$('contextHours').textContent='—'}
+  arr(d.phases).forEach(p=>{if(p&&p.complete)document.querySelector(`[data-phase="${p.id}"]`)?.classList.add('complete')});positionGlobalNodes();positionMarker(d.overall.visual_progress_pct||d.overall.completion_pct);$('sceneCaption').textContent=`整体课程进度 ${one(d.overall.completion_pct)}%`;$('phaseValue').textContent=d.current_phase.name;$('milestoneValue').textContent=d.current_phase.milestone;$('passedValue').textContent=`${d.overall.passed_chapters} / ${d.overall.total_chapters}章`;$('gapValue').textContent=`${d.overall.gap_hours>=0?'+':''}${one(d.overall.gap_hours)}小时`;const t=new Date(d.generated_at).toLocaleString('zh-CN');$('syncText').textContent='数据自动同步于 '+t;$('updatedText').textContent='最后更新 '+t}
+async function load(){const r=await fetch('polar-progress-data.json?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json())}
+load().catch(err=>{$('shell').innerHTML=`<div class="error">极地学习航标暂时无法读取数据：${text(err.message,'未知错误')}。页面代码已启用兼容保护，请检查GitHub Actions是否成功生成 polar-progress-data.json。</div>`})
 </script>
 </body>
 </html>

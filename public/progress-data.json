@@ -1,13 +1,88 @@
 {
-  "generated_at": "2026-07-30T05:45:00+00:00",
+  "schema_version": 3,
+  "generated_at": "2026-07-30T06:10:00+00:00",
   "course_start": "2026-07-29",
   "course_end": "2026-11-10",
   "today": "2026-07-30",
   "plan_total_hours": 326,
-  "actual_total_hours": 2,
+  "actual_total_hours": 2.0,
   "planned_to_date_hours": 5.7,
   "gap_hours": -3.7,
   "completion_pct": 0.6,
-  "actual_points": [],
-  "planned_points": []
+  "actual_points": [
+    {
+      "date": "2026-07-29",
+      "hours": 2.0
+    },
+    {
+      "date": "2026-07-30",
+      "hours": 2.0
+    }
+  ],
+  "planned_points": [
+    {
+      "date": "2026-07-29",
+      "hours": 0.0
+    },
+    {
+      "date": "2026-08-04",
+      "hours": 20.0
+    },
+    {
+      "date": "2026-08-11",
+      "hours": 40.0
+    },
+    {
+      "date": "2026-08-18",
+      "hours": 60.0
+    },
+    {
+      "date": "2026-08-25",
+      "hours": 81.0
+    },
+    {
+      "date": "2026-09-01",
+      "hours": 102.0
+    },
+    {
+      "date": "2026-09-08",
+      "hours": 125.0
+    },
+    {
+      "date": "2026-09-15",
+      "hours": 146.0
+    },
+    {
+      "date": "2026-09-22",
+      "hours": 166.0
+    },
+    {
+      "date": "2026-09-29",
+      "hours": 188.0
+    },
+    {
+      "date": "2026-10-06",
+      "hours": 212.0
+    },
+    {
+      "date": "2026-10-13",
+      "hours": 236.0
+    },
+    {
+      "date": "2026-10-20",
+      "hours": 260.0
+    },
+    {
+      "date": "2026-10-27",
+      "hours": 282.0
+    },
+    {
+      "date": "2026-11-03",
+      "hours": 304.0
+    },
+    {
+      "date": "2026-11-10",
+      "hours": 326.0
+    }
+  ]
 }

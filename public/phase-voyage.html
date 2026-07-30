@@ -3,155 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>阶段航线</title>
 <style>
-:root{
-  --ink:#173452;--muted:#66798d;--blue:#2876ba;--line:rgba(47,104,155,.17);
-  --route:0%;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:transparent;color:var(--ink)}
-body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
-.card{
-  position:relative;overflow:hidden;border-radius:16px;min-height:470px;
-  border:1px solid rgba(64,119,169,.20);
-  background:
-    linear-gradient(180deg,rgba(250,253,255,.94),rgba(231,245,252,.74)),
-    url("assets/phase-sea-bg.webp") center/cover no-repeat;
-  box-shadow:0 8px 26px rgba(37,80,119,.09)
-}
-.card::after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(255,255,255,.68),rgba(217,239,249,.13) 55%,rgba(45,119,166,.13));
-  pointer-events:none
-}
-.inner{position:relative;z-index:1;padding:20px 24px 15px}
-.head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
-.title{font-size:19px;font-weight:760}.meta{font-size:11px;color:var(--muted);margin-top:5px}
-.phase-progress{text-align:right;min-width:190px}
-.phase-progress strong{font-size:16px}.phase-progress small{display:block;color:var(--muted);font-size:9px;margin-top:4px}
-.mini{height:5px;background:rgba(52,107,157,.13);border-radius:999px;overflow:hidden;margin-top:8px}
-.mini span{display:block;height:100%;width:0;background:var(--blue);border-radius:999px;transition:width .8s ease}
-.route{
-  position:relative;height:285px;margin-top:10px;
-  border-radius:13px;overflow:hidden;border:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(204,235,247,.13))
-}
-.wave{
-  position:absolute;left:3%;right:3%;top:151px;height:58px;
-}
-.wave svg{width:100%;height:100%;overflow:visible}
-.wave path.base{fill:none;stroke:rgba(50,121,174,.32);stroke-width:3;stroke-dasharray:5 6}
-.wave path.done{fill:none;stroke:var(--blue);stroke-width:3;stroke-dasharray:5 6}
-.boat{
-  position:absolute;z-index:5;width:92px;left:calc(3% + var(--route)*.94);
-  top:102px;transform:translate(-45%,-50%);transition:left .9s ease;
-  filter:drop-shadow(0 7px 8px rgba(37,79,113,.18));
-  animation:sail 4.2s ease-in-out infinite
-}
-.islands{position:absolute;left:8%;right:5%;top:82px;height:155px}
-.island{
-  position:absolute;transform:translateX(-50%);width:118px;text-align:center;
-  cursor:default
-}
-.island img{width:102px;height:76px;object-fit:contain;filter:saturate(.72) opacity(.76);transition:.3s ease}
-.island.active img{filter:saturate(.98) opacity(1);transform:translateY(-4px);drop-shadow:0 8px 10px rgba(41,88,126,.18)}
-.island.passed img{filter:saturate(1) opacity(1)}
-.island.goal img{width:116px;height:88px}
-.chapter-label{
-  display:inline-block;margin-top:-5px;padding:4px 8px;border-radius:7px;
-  font-size:10px;font-weight:700;background:rgba(255,255,255,.82);
-  border:1px solid rgba(49,105,155,.13);white-space:nowrap
-}
-.status{font-size:9px;color:var(--muted);margin-top:3px}
-.island.active .chapter-label{background:#2f77bd;color:#fff;border-color:#2f77bd}
-.island.passed .status{color:#256da8;font-weight:650}
-.summary{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:10px;
-  border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.84);
-  backdrop-filter:blur(7px)
-}
-.item{padding:11px 13px;min-height:59px}.item+.item{border-left:1px solid var(--line)}
-.item b{display:block;font-size:10px}.item span{display:block;color:var(--muted);font-size:9px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.footer{text-align:right;font-size:9px;color:var(--muted);margin-top:8px}
-.error{padding:16px;background:#fff3f3;color:#8b3232;border-radius:10px}
-@keyframes sail{0%,100%{transform:translate(-45%,-50%) rotate(-1deg) translateY(0)}50%{transform:translate(-45%,-50%) rotate(1deg) translateY(-4px)}}
-@media(max-width:900px){
-  .card{min-height:650px}.head{display:block}.phase-progress{text-align:left;margin-top:12px}
-  .route{height:355px;overflow-x:auto}.islands{min-width:850px}.wave{min-width:850px}
-  .boat{width:78px}.summary{grid-template-columns:1fr 1fr}.item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.item:nth-child(4){border-top:1px solid var(--line)}
-}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:root{--ink:#123354;--muted:#60758b;--blue:#2f79bd;--orange:#b87832;--line:rgba(48,105,157,.18)}
+*{box-sizing:border-box}html,body{margin:0;background:transparent;color:var(--ink)}body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.shell{min-height:558px;border:1px solid rgba(43,105,159,.24);border-radius:18px;background:#f7fbfe;overflow:hidden;box-shadow:0 10px 32px rgba(34,76,112,.11)}
+.header{padding:23px 28px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;background:linear-gradient(180deg,#fbfdff,#f4f9fc)}
+.title{font-size:28px;font-weight:800;letter-spacing:.025em}.subtitle{font-size:13px;color:var(--muted);margin-top:7px}.progressbox{text-align:right;min-width:285px}.acceptance{font-size:20px;font-weight:790}.route-progress{font-size:12px;color:var(--muted);margin-top:7px}.bar{height:7px;margin-top:10px;border-radius:999px;background:rgba(48,106,157,.14);overflow:hidden}.bar span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#2f79bd,#88bde2);transition:width .8s ease}
+.stage{height:372px;margin:0 20px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:url("assets/voyage-bg.webp") center 56%/cover no-repeat;position:relative}.stage::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(247,252,255,.53),rgba(226,243,251,.18) 54%,rgba(207,232,244,.18));z-index:0}.stage svg{position:relative;z-index:1;display:block;width:100%;height:100%}
+.route-base{fill:none;stroke:rgba(75,139,187,.42);stroke-width:4;stroke-dasharray:10 10}.route-done{fill:none;stroke:#2f79bd;stroke-width:5;stroke-linecap:round}.island-halo{fill:rgba(255,255,255,0)}.island-image{filter:saturate(.72) opacity(.84);transition:filter .25s ease,transform .25s ease}.island.passed .island-image{filter:saturate(1) opacity(1)}.island.active .island-image{filter:saturate(1) opacity(1);transform-box:fill-box;transform-origin:center;transform:scale(1.08)}.island.review .island-image,.island.repair .island-image{filter:saturate(.92) opacity(.97)}
+.label-box{fill:rgba(255,255,255,.94);stroke:rgba(48,105,157,.22);stroke-width:1}.island.active .label-box{fill:#2f79bd;stroke:#2f79bd}.chapter-label{font-size:19px;font-weight:800;text-anchor:middle;fill:#123354}.island.active .chapter-label{fill:#fff}.status-label{font-size:14px;text-anchor:middle;fill:#5d7489}.island.passed .status-label{fill:#246da8;font-weight:700}.island.review .status-label,.island.repair .status-label{fill:#a66d29;font-weight:700}.boat{filter:drop-shadow(0 9px 10px rgba(31,75,108,.22))}
+.info{margin:13px 20px 0;display:grid;grid-template-columns:1fr 1.32fr 1.3fr 1.15fr;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.94);overflow:hidden}.item{min-height:78px;padding:15px 17px}.item+.item{border-left:1px solid var(--line)}.item b{display:block;font-size:13px}.item span{display:block;margin-top:7px;font-size:12px;line-height:1.55;color:var(--muted)}
+.footer{padding:9px 22px 13px;display:flex;justify-content:space-between;gap:16px;font-size:10px;color:#687d8e}.tooltip{display:none;position:fixed;z-index:50;pointer-events:none;max-width:300px;padding:10px 12px;border-radius:9px;background:#123354;color:#fff;font-size:12px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.22)}.error{margin:28px;padding:18px;border:1px solid #e8aaaa;border-radius:12px;background:#fff2f2;color:#923636;font-size:14px}
+@media(max-width:940px){.header{display:block}.progressbox{text-align:left;margin-top:14px}.stage{overflow-x:auto}.stage svg{min-width:1200px}.info{grid-template-columns:1fr 1fr}.item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.item:nth-child(4){border-top:1px solid var(--line)}}
+@media(max-width:620px){.info{grid-template-columns:1fr}.item+.item{border-left:0;border-top:1px solid var(--line)}.title{font-size:24px}.footer{display:block}.footer span{display:block;margin-top:4px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="inner" id="app">
-    <div class="head">
-      <div><div class="title" id="title">阶段航线</div><div class="meta" id="meta">正在读取当前阶段</div></div>
-      <div class="phase-progress"><strong id="progressText">—</strong><small id="dateText">—</small><div class="mini"><span id="progressBar"></span></div></div>
-    </div>
-    <div class="route">
-      <div class="wave">
-        <svg viewBox="0 0 1000 100" preserveAspectRatio="none">
-          <path class="base" d="M0 55 C70 8 120 95 190 48 S310 15 380 64 S500 92 570 42 S690 8 760 57 S900 92 1000 38"/>
-          <path class="done" id="donePath" pathLength="100" stroke-dasharray="0 100" d="M0 55 C70 8 120 95 190 48 S310 15 380 64 S500 92 570 42 S690 8 760 57 S900 92 1000 38"/>
-        </svg>
-      </div>
-      <img class="boat" src="assets/sailboat.webp" alt="阶段航船">
-      <div class="islands" id="islands"></div>
-    </div>
-    <div class="summary">
-      <div class="item"><b>阶段目标</b><span id="goal">—</span></div>
-      <div class="item"><b>当前聚焦</b><span id="focus">—</span></div>
-      <div class="item"><b>下一站</b><span id="next">—</span></div>
-      <div class="item"><b>完成标志</b><span>完成本阶段全部章节并升起阶段旗帜</span></div>
-    </div>
-    <div class="footer" id="updated">—</div>
-  </div>
-</div>
+<div class="shell" id="shell">
+  <header class="header"><div><div class="title" id="title">阶段航线</div><div class="subtitle" id="subtitle">正在读取当前阶段</div></div><div class="progressbox"><div class="acceptance" id="acceptance">验收进度 —</div><div class="route-progress" id="routeProgress">航行进度 —</div><div class="bar"><span id="acceptanceBar"></span></div></div></header>
+  <section class="stage"><svg id="voyageMap" viewBox="0 0 1600 430" preserveAspectRatio="xMidYMid meet" aria-label="当前阶段章节航线"><defs><path id="routePath" pathLength="100" d="M90 245 C225 213 325 265 460 235 S690 209 815 244 S1040 268 1170 231 S1390 211 1510 242"/></defs><path class="route-base" d="M90 245 C225 213 325 265 460 235 S690 209 815 244 S1040 268 1170 231 S1390 211 1510 242"/><path id="routeDone" class="route-done" pathLength="100" stroke-dasharray="0 100" d="M90 245 C225 213 325 265 460 235 S690 209 815 244 S1040 268 1170 231 S1390 211 1510 242"/><g id="islandLayer"></g><image id="boat" class="boat" href="assets/sailboat.webp" width="158" height="126" x="-79" y="-101"/></svg></section>
+  <section class="info"><div class="item"><b>阶段目标</b><span id="goalValue">—</span></div><div class="item"><b>当前聚焦</b><span id="focusValue">—</span></div><div class="item"><b>当前单元 / 下一动作</b><span id="unitValue">—</span></div><div class="item"><b>下一站</b><span id="nextValue">—</span></div></section>
+  <footer class="footer"><span>航行进度反映当前章内部推进；只有正式通过验收的章节才切换为亮色蓝旗岛。</span><span id="updated">—</span></footer>
+</div><div class="tooltip" id="tip"></div>
 <script>
-const f=v=>Number(v||0).toFixed(0);
-const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-async function load(){
-  const r=await fetch("phase-voyage-data.json?ts="+Date.now(),{cache:"no-store"});
-  if(!r.ok)throw new Error("HTTP "+r.status);
-  const d=await r.json(), p=d.phase;
-  document.getElementById("title").textContent=`阶段航线｜${p.short}阶段`;
-  document.getElementById("meta").textContent=`${p.name}（第${p.start_chapter}—${p.end_chapter}章）`;
-  document.getElementById("progressText").textContent=`${p.completed_chapters} / ${p.total_chapters}章`;
-  document.getElementById("dateText").textContent=p.date_label;
-  document.getElementById("progressBar").style.width=Math.min(100,p.completion_pct)+"%";
-  document.documentElement.style.setProperty("--route",Math.min(100,p.route_progress_pct)+"%");
-  document.getElementById("donePath").setAttribute("stroke-dasharray",`${p.route_progress_pct} ${100-p.route_progress_pct}`);
-  document.getElementById("goal").textContent=`完成第${p.start_chapter}—${p.end_chapter}章`;
-  document.getElementById("focus").textContent=d.current_chapter
-    ? `第${d.current_chapter.number}章｜${d.current_chapter.title}`:"阶段已完成";
-  document.getElementById("next").textContent=d.next_chapter
-    ? `第${d.next_chapter.number}章｜${d.next_chapter.title}`:"抵达阶段目标岛";
-
-  const items=[...d.chapters,{number:"目标",title:"阶段目标岛",status:p.complete?"已抵达":"等待抵达",goal:true,passed:p.complete,active:false}];
-  const host=document.getElementById("islands");
-  host.innerHTML=items.map((c,i)=>{
-    const left=(i+1)/(items.length+1)*100;
-    const cls=["island",c.goal?"goal":"",c.passed?"passed":"",c.active?"active":""].filter(Boolean).join(" ");
-    let asset="island-neutral.webp";
-    if(c.goal)asset=p.complete?"island-goal.webp":"island-pending.webp";
-    else if(c.passed)asset="island-complete.webp";
-    else if(c.active)asset="island-neutral.webp";
-    else asset="island-pending.webp";
-    const label=c.goal?"阶段目标岛":`第${c.number}章`;
-    const status=c.goal?(p.complete?"已抵达":"终点"):c.status;
-    return `<div class="${cls}" style="left:${left}%">
-      <img src="assets/${asset}" alt="${esc(label)}">
-      <div class="chapter-label">${esc(label)}</div>
-      <div class="status">${esc(status)}</div>
-    </div>`;
-  }).join("");
-  document.getElementById("updated").textContent="自动同步于 "+new Date(d.generated_at).toLocaleString("zh-CN");
-}
-load().catch(e=>document.getElementById("app").innerHTML=`<div class="error">加载失败：${e.message}</div>`);
+const SVGNS='http://www.w3.org/2000/svg';const $=id=>document.getElementById(id);const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,Number(v)||0));const text=(v,f='—')=>v===null||v===undefined||String(v).trim()===''?f:String(v);const arr=v=>Array.isArray(v)?v:[];const obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+function normalize(raw){raw=obj(raw);const phase=obj(raw.phase);const chapters=arr(raw.chapters).map(c=>({...obj(c),number:Number(c?.number)||0,status:text(c?.status,'未开始'),passed:Boolean(c?.passed),active:Boolean(c?.active),review:Boolean(c?.review),repair:Boolean(c?.repair),actual_hours:Number(c?.actual_hours)||0,expected_hours:Number(c?.expected_hours)||0,time_progress_pct:Number(c?.time_progress_pct??c?.progress_pct)||0}));let current=Object.keys(obj(raw.current_chapter)).length?obj(raw.current_chapter):chapters.find(c=>c.active)||chapters.find(c=>!c.passed)||null;let next=Object.keys(obj(raw.next_chapter)).length?obj(raw.next_chapter):null;if(!next&&current)next=chapters.find(c=>c.number>Number(current.number)&&!c.passed)||null;const passed=Number(phase.passed_chapters??phase.completed_chapters)||0;const total=Number(phase.total_chapters)||chapters.length||5;const acceptance=Number(phase.acceptance_pct??phase.completion_pct)||(total?passed/total*100:0);return{generated_at:raw.generated_at||new Date().toISOString(),phase:{id:Number(phase.id)||1,name:text(phase.name,'基础语言与海洋结构'),short:text(phase.short,'基础'),start_chapter:Number(phase.start_chapter)||1,end_chapter:Number(phase.end_chapter)||5,date_label:text(phase.date_label,''),passed_chapters:passed,total_chapters:total,acceptance_pct:acceptance,route_progress_pct:Number(phase.route_progress_pct)||0,complete:Boolean(phase.complete)},chapters,current_chapter:current,next_chapter:next}}
+function svgEl(name,attrs={}){const n=document.createElementNS(SVGNS,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));return n}
+function pointAt(pct){const path=$('routePath'),len=path.getTotalLength();return path.getPointAtLength(len*clamp(pct)/100)}
+function angleAt(pct){const path=$('routePath'),len=path.getTotalLength(),at=len*clamp(pct)/100,a=path.getPointAtLength(at),b=path.getPointAtLength(Math.min(len,at+3));return Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI}
+function islandAsset(c,goal,phaseComplete){if(goal)return phaseComplete?'assets/island-goal.webp':'assets/island-pending.webp';if(c.passed)return'assets/island-passed.webp';if(c.active||c.review||c.repair)return'assets/island-active.webp';return'assets/island-pending.webp'}
+function statusClass(c){if(c.passed)return'passed';if(c.active)return'active';if(c.review)return'review';if(c.repair)return'repair';return'pending'}
+function showTip(e,html){const tip=$('tip');tip.innerHTML=html;tip.style.display='block';tip.style.left=e.clientX+13+'px';tip.style.top=e.clientY+13+'px'}function hideTip(){$('tip').style.display='none'}
+function renderIslands(d){const layer=$('islandLayer');layer.innerHTML='';const count=d.chapters.length||5;const pcts=Array.from({length:count},(_,i)=>13+i*(68/Math.max(1,count-1)));const offsets=[-138,48,-132,48,-138,48,-132,48];const items=[...d.chapters,{goal:true,status:d.phase.complete?'已抵达':'等待抵达'}];const allPcts=[...pcts,95];items.forEach((c,i)=>{const goal=Boolean(c.goal),p=pointAt(allPcts[i]),offset=goal?68:offsets[i%offsets.length],cx=p.x,cy=p.y+offset;const g=svgEl('g',{class:`island ${goal?'goal':statusClass(c)}`,transform:`translate(${cx} ${cy})`});const w=goal?218:(c.active?212:196),h=goal?148:(c.active?144:134);g.appendChild(svgEl('ellipse',{cx:0,cy:4,rx:80,ry:45,class:'island-halo'}));g.appendChild(svgEl('image',{href:islandAsset(c,goal,d.phase.complete),x:-w/2,y:-h/2,width:w,height:h,class:'island-image'}));const boxW=goal?154:96;g.appendChild(svgEl('rect',{x:-boxW/2,y:57,width:boxW,height:39,rx:9,class:'label-box'}));const label=svgEl('text',{x:0,y:84,class:'chapter-label'});label.textContent=goal?'阶段目标岛':`第${c.number}章`;g.appendChild(label);const st=svgEl('text',{x:0,y:116,class:'status-label'});st.textContent=goal?(d.phase.complete?'已抵达':'等待抵达'):text(c.status,'未开始');g.appendChild(st);if(!goal){g.style.cursor='help';g.addEventListener('mousemove',e=>showTip(e,`<b>${text(c.title,`第${c.number}章`)}</b><br>状态：${text(c.status,'未开始')}<br>章节投入：${Number(c.actual_hours||0).toFixed(1)} / ${Number(c.expected_hours||0).toFixed(1)}小时${c.current_unit?`<br>当前单元：${text(c.current_unit)}`:(c.next_action?`<br>下一动作：${text(c.next_action)}`:'')}`));g.addEventListener('mouseleave',hideTip)}layer.appendChild(g)})}
+function positionBoat(pct){const p=pointAt(pct),angle=angleAt(pct);$('boat').setAttribute('transform',`translate(${p.x} ${p.y}) rotate(${angle})`);$('routeDone').setAttribute('stroke-dasharray',`${clamp(pct)} ${100-clamp(pct)}`)}
+function render(raw){const d=normalize(raw),p=d.phase;$('title').textContent=`阶段航线｜${p.short}阶段`;$('subtitle').textContent=`${p.name}（第${p.start_chapter}—${p.end_chapter}章）${p.date_label?' · '+p.date_label:''}`;$('acceptance').textContent=`验收进度 ${p.passed_chapters} / ${p.total_chapters}章`;$('routeProgress').textContent=`航行进度 ${Number(p.route_progress_pct).toFixed(1)}%`;$('acceptanceBar').style.width=clamp(p.acceptance_pct)+'%';$('goalValue').textContent=`完成第${p.start_chapter}—${p.end_chapter}章并通过阶段验收`;const c=d.current_chapter;$('focusValue').textContent=c?text(c.title,`第${c.number}章`):'当前阶段已完成';$('unitValue').textContent=c?text(c.current_unit||c.next_action,'当前单元待更新'):'已抵达阶段目标岛';$('nextValue').textContent=d.next_chapter?text(d.next_chapter.title,`第${d.next_chapter.number}章`):'阶段目标岛';renderIslands(d);positionBoat(p.route_progress_pct);$('updated').textContent='自动同步于 '+new Date(d.generated_at).toLocaleString('zh-CN')}
+async function load(){const r=await fetch('phase-voyage-data.json?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json())}
+load().catch(err=>{$('shell').innerHTML=`<div class="error">阶段航线暂时无法读取数据：${text(err.message,'未知错误')}。页面已启用字段兼容保护，请检查GitHub Actions是否成功生成 phase-voyage-data.json。</div>`})
 </script>
 </body>
 </html>

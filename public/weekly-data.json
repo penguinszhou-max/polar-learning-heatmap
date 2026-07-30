@@ -1,18 +1,171 @@
 {
-  "generated_at": "2026-07-30T05:45:00+00:00",
+  "schema_version": 3,
+  "generated_at": "2026-07-30T06:10:00+00:00",
   "redline_hours": 18,
   "minimum_hours": 20,
   "standard_hours": 22,
   "sprint_hours": 24,
-  "total_actual_hours": 2,
+  "total_actual_hours": 2.0,
   "current_week": {
+    "internal_id": "W1",
     "label": "7.29–8.4",
     "date_label": "7月29日—8月4日",
     "start": "2026-07-29",
     "end": "2026-08-04",
     "target_hours": 20,
-    "actual_hours": 2,
-    "completion_pct": 10
+    "actual_hours": 2.0,
+    "completion_pct": 10.0
   },
-  "weeks": []
+  "weeks": [
+    {
+      "internal_id": "W1",
+      "label": "7.29–8.4",
+      "date_label": "7月29日—8月4日",
+      "start": "2026-07-29",
+      "end": "2026-08-04",
+      "target_hours": 20,
+      "actual_hours": 2.0,
+      "completion_pct": 10.0
+    },
+    {
+      "internal_id": "W2",
+      "label": "8.5–8.11",
+      "date_label": "8月5日—11日",
+      "start": "2026-08-05",
+      "end": "2026-08-11",
+      "target_hours": 20,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W3",
+      "label": "8.12–8.18",
+      "date_label": "8月12日—18日",
+      "start": "2026-08-12",
+      "end": "2026-08-18",
+      "target_hours": 20,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W4",
+      "label": "8.19–8.25",
+      "date_label": "8月19日—25日",
+      "start": "2026-08-19",
+      "end": "2026-08-25",
+      "target_hours": 21,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W5",
+      "label": "8.26–9.1",
+      "date_label": "8月26日—9月1日",
+      "start": "2026-08-26",
+      "end": "2026-09-01",
+      "target_hours": 21,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W6",
+      "label": "9.2–9.8",
+      "date_label": "9月2日—8日",
+      "start": "2026-09-02",
+      "end": "2026-09-08",
+      "target_hours": 23,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W7",
+      "label": "9.9–9.15",
+      "date_label": "9月9日—15日",
+      "start": "2026-09-09",
+      "end": "2026-09-15",
+      "target_hours": 21,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W8",
+      "label": "9.16–9.22",
+      "date_label": "9月16日—22日",
+      "start": "2026-09-16",
+      "end": "2026-09-22",
+      "target_hours": 20,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W9",
+      "label": "9.23–9.29",
+      "date_label": "9月23日—29日",
+      "start": "2026-09-23",
+      "end": "2026-09-29",
+      "target_hours": 22,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W10",
+      "label": "9.30–10.6",
+      "date_label": "9月30日—10月6日",
+      "start": "2026-09-30",
+      "end": "2026-10-06",
+      "target_hours": 24,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W11",
+      "label": "10.7–10.13",
+      "date_label": "10月7日—13日",
+      "start": "2026-10-07",
+      "end": "2026-10-13",
+      "target_hours": 24,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W12",
+      "label": "10.14–10.20",
+      "date_label": "10月14日—20日",
+      "start": "2026-10-14",
+      "end": "2026-10-20",
+      "target_hours": 24,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W13",
+      "label": "10.21–10.27",
+      "date_label": "10月21日—27日",
+      "start": "2026-10-21",
+      "end": "2026-10-27",
+      "target_hours": 22,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W14",
+      "label": "10.28–11.3",
+      "date_label": "10月28日—11月3日",
+      "start": "2026-10-28",
+      "end": "2026-11-03",
+      "target_hours": 22,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    },
+    {
+      "internal_id": "W15",
+      "label": "11.4–11.10",
+      "date_label": "11月4日—10日",
+      "start": "2026-11-04",
+      "end": "2026-11-10",
+      "target_hours": 22,
+      "actual_hours": 0.0,
+      "completion_pct": 0.0
+    }
+  ]
 }

@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Read Notion and build voyage data
+      - name: Read Notion and build all chart data
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           LEARNING_RECORDS_DATA_SOURCE_ID: ${{ secrets.LEARNING_RECORDS_DATA_SOURCE_ID }}

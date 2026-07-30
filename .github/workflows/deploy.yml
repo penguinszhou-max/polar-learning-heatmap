@@ -1,9 +1,10 @@
-name: Deploy POLAR Learning Navigation
+name: Deploy POLAR Learning Charts
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "scripts/**"
       - "public/**"
@@ -18,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: polar-learning-navigation-${{ github.ref }}
+  group: polar-learning-charts-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,24 +30,36 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - name: Read Notion and build navigation data
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Read Notion and build voyage data
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           LEARNING_RECORDS_DATA_SOURCE_ID: ${{ secrets.LEARNING_RECORDS_DATA_SOURCE_ID }}
           CHAPTERS_DATA_SOURCE_ID: ${{ secrets.CHAPTERS_DATA_SOURCE_ID }}
           TIMEZONE: ${{ vars.TIMEZONE || 'Asia/Shanghai' }}
         run: python scripts/build.py
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
           name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: public
-      - id: deployment
+
+      - name: Deploy GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}

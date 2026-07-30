@@ -1,56 +1,86 @@
 {
-  "generated_at": "2026-07-30T05:00:00+00:00",
+  "generated_at": "2026-07-30T05:30:00+00:00",
   "phase": {
     "id": 1,
     "name": "基础语言与海洋结构",
-    "start": 1,
-    "end": 5,
-    "milestone": "基础",
-    "completed": 0,
-    "total": 5,
-    "completion_pct": 0.0,
-    "is_complete": false
+    "short": "基础",
+    "start_chapter": 1,
+    "end_chapter": 5,
+    "date_label": "7月29日—8月25日",
+    "completed_chapters": 0,
+    "total_chapters": 5,
+    "completion_pct": 0,
+    "route_progress_pct": 10,
+    "complete": false
   },
   "current_chapter": {
     "number": 1,
     "title": "海洋是一个怎样的物理系统",
     "status": "学习中",
-    "current_unit": "已完成1.1—1.4",
+    "current_unit": "已完成1.1—1.4；下一单元1.5",
     "next_action": "进入1.5",
-    "actual_hours": 2.0,
-    "expected_hours": 4.0
+    "actual_hours": 2,
+    "expected_hours": 4,
+    "progress_pct": 50,
+    "passed": false,
+    "active": true
   },
   "next_chapter": {
     "number": 2,
-    "title": "海水状态方程",
-    "status": "未开始"
+    "title": "海水状态方程与热力学",
+    "status": "未开始",
+    "progress_pct": 0
   },
-  "boat_index": 0,
   "chapters": [
     {
       "number": 1,
       "title": "海洋是一个怎样的物理系统",
-      "status": "学习中"
+      "status": "学习中",
+      "actual_hours": 2,
+      "expected_hours": 4,
+      "progress_pct": 50,
+      "passed": false,
+      "active": true
     },
     {
       "number": 2,
-      "title": "海水状态方程",
-      "status": "未开始"
+      "title": "海水状态方程与热力学",
+      "status": "未开始",
+      "actual_hours": 0,
+      "expected_hours": 0,
+      "progress_pct": 0,
+      "passed": false,
+      "active": false
     },
     {
       "number": 3,
-      "title": "章节3",
-      "status": "未开始"
+      "title": "海洋分层与稳定性",
+      "status": "未开始",
+      "actual_hours": 0,
+      "expected_hours": 0,
+      "progress_pct": 0,
+      "passed": false,
+      "active": false
     },
     {
       "number": 4,
-      "title": "章节4",
-      "status": "未开始"
+      "title": "水团与海洋结构",
+      "status": "未开始",
+      "actual_hours": 0,
+      "expected_hours": 0,
+      "progress_pct": 0,
+      "passed": false,
+      "active": false
     },
     {
       "number": 5,
-      "title": "章节5",
-      "status": "未开始"
+      "title": "基础阶段整合",
+      "status": "未开始",
+      "actual_hours": 0,
+      "expected_hours": 0,
+      "progress_pct": 0,
+      "passed": false,
+      "active": false
     }
   ]
 }

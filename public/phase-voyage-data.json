@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-07-30T05:00:00+00:00",
+  "phase": {
+    "id": 1,
+    "name": "基础语言与海洋结构",
+    "start": 1,
+    "end": 5,
+    "milestone": "基础",
+    "completed": 0,
+    "total": 5,
+    "completion_pct": 0.0,
+    "is_complete": false
+  },
+  "current_chapter": {
+    "number": 1,
+    "title": "海洋是一个怎样的物理系统",
+    "status": "学习中",
+    "current_unit": "已完成1.1—1.4",
+    "next_action": "进入1.5",
+    "actual_hours": 2.0,
+    "expected_hours": 4.0
+  },
+  "next_chapter": {
+    "number": 2,
+    "title": "海水状态方程",
+    "status": "未开始"
+  },
+  "boat_index": 0,
+  "chapters": [
+    {
+      "number": 1,
+      "title": "海洋是一个怎样的物理系统",
+      "status": "学习中"
+    },
+    {
+      "number": 2,
+      "title": "海水状态方程",
+      "status": "未开始"
+    },
+    {
+      "number": 3,
+      "title": "章节3",
+      "status": "未开始"
+    },
+    {
+      "number": 4,
+      "title": "章节4",
+      "status": "未开始"
+    },
+    {
+      "number": 5,
+      "title": "章节5",
+      "status": "未开始"
+    }
+  ]
+}

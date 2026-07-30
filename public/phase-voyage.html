@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>阶段航线</title>
+<style>
+:root{
+  --text:#15324f;--muted:#718294;--line:rgba(123,160,187,.24);--accent:#3c7fb4;
+  --panel:rgba(255,255,255,.84);--shadow:0 14px 30px rgba(58,92,118,.11)
+}
+*{box-sizing:border-box} html,body{margin:0;background:transparent;color:var(--text)}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.shell{padding:10px}.card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.bg{position:absolute;inset:0;background:
+linear-gradient(180deg,rgba(255,255,255,.95) 0 28%,rgba(246,251,253,.67) 45%,rgba(226,242,248,.28) 100%),
+url("assets/voyage-bg.webp") center/cover no-repeat;z-index:0}
+.content{position:relative;z-index:1;padding:18px}
+.header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.title{font-size:20px;font-weight:760}.subtitle{font-size:11px;color:var(--muted);margin-top:4px}
+.progressbox{text-align:right;min-width:150px}.progressbox strong{font-size:16px}
+.bar{height:5px;background:rgba(92,133,162,.15);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#3c7fb4,#80aac8);border-radius:999px}
+.scene{position:relative;height:270px;margin-top:8px}
+.wave{
+  position:absolute;left:4%;right:4%;top:126px;height:70px;
+  background:
+  radial-gradient(50px 18px at 50px 0,transparent 64%,rgba(75,131,172,.62) 67% 72%,transparent 74%)
+  0 0/100px 54px repeat-x;
+  opacity:.78
+}
+.route{
+  position:absolute;left:5%;right:5%;top:128px;height:2px;
+  border-top:2px dashed rgba(61,123,174,.72);
+  transform:skewY(-1.8deg)
+}
+.boat{
+  position:absolute;top:87px;left:5%;width:58px;height:45px;transform:translateX(-50%);
+  transition:left .9s ease;animation:sail 4s ease-in-out infinite
+}
+.boat::before{
+  content:"";position:absolute;left:18px;top:2px;width:0;height:0;
+  border-left:0 solid transparent;border-right:20px solid transparent;border-bottom:30px solid rgba(255,255,255,.95);
+  filter:drop-shadow(0 2px 2px rgba(40,70,90,.15))
+}
+.boat::after{
+  content:"";position:absolute;left:8px;top:30px;width:42px;height:10px;background:#8e6a4c;
+  border-radius:0 0 18px 18px;box-shadow:0 3px 7px rgba(32,56,72,.18)
+}
+.islands{position:absolute;left:9%;right:4%;top:70px;display:grid;grid-template-columns:repeat(6,1fr);align-items:end}
+.island{text-align:center;position:relative;min-width:0}
+.ice{
+  width:88px;height:60px;margin:0 auto;background:
+  linear-gradient(145deg,rgba(255,255,255,.98),rgba(196,226,238,.95));
+  clip-path:polygon(8% 78%,18% 36%,39% 20%,50% 5%,61% 25%,79% 35%,93% 78%,72% 95%,25% 94%);
+  box-shadow:0 8px 18px rgba(49,91,119,.15);opacity:.48;transition:.3s
+}
+.flag{position:absolute;left:50%;top:-3px;width:2px;height:28px;background:#6c8295;transform:translateX(-1px)}
+.flag::after{content:"";position:absolute;left:2px;top:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:18px solid #a9b8c4}
+.island.done .ice,.island.current .ice{opacity:1}
+.island.done .flag::after{border-left-color:#3c7fb4}
+.island.current .ice{filter:drop-shadow(0 0 8px rgba(73,141,189,.36));transform:scale(1.05)}
+.island.current .flag::after{border-left-color:#d6903e}
+.lab{margin-top:7px;font-size:11px;font-weight:700}.state{font-size:9px;color:var(--muted);margin-top:2px}
+.target .ice{width:100px;opacity:.82}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid rgba(123,160,187,.18);border-radius:12px;background:rgba(255,255,255,.75);backdrop-filter:blur(8px);overflow:hidden}
+.item{padding:10px 12px;border-right:1px solid rgba(123,160,187,.16)}.item:last-child{border-right:0}
+.item b{display:block;font-size:10px}.item span{display:block;margin-top:3px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes sail{0%,100%{transform:translateX(-50%) translateY(0) rotate(-1deg)}50%{transform:translateX(-50%) translateY(-3px) rotate(1deg)}}
+@media(max-width:850px){.scene{height:330px}.islands{grid-template-columns:repeat(3,1fr);row-gap:18px;top:60px}.wave,.route{display:none}.boat{display:none}.summary{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="card">
+    <div class="bg"></div>
+    <div class="content">
+      <div class="header">
+        <div>
+          <div class="title">阶段航线</div>
+          <div class="subtitle" id="subtitle">正在识别当前阶段</div>
+        </div>
+        <div class="progressbox">
+          <strong id="phaseProgress">—</strong>
+          <div class="bar"><span id="phaseBar"></span></div>
+        </div>
+      </div>
+
+      <div class="scene">
+        <div class="wave"></div><div class="route"></div><div class="boat" id="boat"></div>
+        <div class="islands" id="islands"></div>
+      </div>
+
+      <div class="summary">
+        <div class="item"><b>阶段目标</b><span id="goal">—</span></div>
+        <div class="item"><b>当前聚焦</b><span id="focus">—</span></div>
+        <div class="item"><b>下一站</b><span id="next">—</span></div>
+        <div class="item"><b>完成结果</b><span>解锁下一阶段</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+fetch("phase-voyage-data.json?ts="+Date.now(),{cache:"no-store"})
+.then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()})
+.then(d=>{
+  document.getElementById("subtitle").textContent=`当前阶段：${d.phase.name}（第${d.phase.start}—${d.phase.end}章）`;
+  document.getElementById("phaseProgress").textContent=`${d.phase.completed} / ${d.phase.total}章 · ${d.phase.completion_pct.toFixed(0)}%`;
+  document.getElementById("phaseBar").style.width=Math.max(0,Math.min(100,d.phase.completion_pct))+"%";
+  const holder=document.getElementById("islands");
+  const arr=[...d.chapters,{number:"目标",title:"阶段目标岛",status:d.phase.is_complete?"已完成":"未完成",target:true}];
+  holder.innerHTML=arr.map((c,i)=>{
+    const cls=c.target?"island target":`island ${c.status==="已通过"?"done":c.status==="学习中"?"current":"future"}`;
+    return `<div class="${cls}">
+      <div class="flag"></div><div class="ice"></div>
+      <div class="lab">${c.target?"阶段目标岛":"第"+esc(c.number)+"章"}</div>
+      <div class="state">${c.target?(d.phase.is_complete?"阶段完成":"完成全部章节"):esc(c.status||"未开始")}</div>
+    </div>`;
+  }).join("");
+  const steps=Math.max(1,arr.length-1);
+  const pos=5+((d.boat_index+.15)/steps)*90;
+  document.getElementById("boat").style.left=Math.min(93,pos)+"%";
+  document.getElementById("goal").textContent=`完成全部${d.phase.total}章`;
+  document.getElementById("focus").textContent=d.current_chapter?`第${d.current_chapter.number}章：${d.current_chapter.title}`:"—";
+  document.getElementById("next").textContent=d.next_chapter?`第${d.next_chapter.number}章：${d.next_chapter.title}`:"阶段目标岛";
+})
+.catch(e=>document.body.innerHTML=`<div style="padding:16px;color:#a33">加载失败：${e.message}</div>`);
+</script>
+</body>
+</html>
